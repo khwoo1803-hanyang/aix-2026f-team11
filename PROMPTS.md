@@ -150,9 +150,9 @@ module.exports = router;
 
 **채택 여부**
 
-전체 채택 — 생성된 `searchMemos`(service.js)와 `GET /memos/search`(routes.js)를 수정 없이 그대로 사용함. 사람이 직접 고친 부분 없음(제너레이션 중 발견된 이스케이프 처리 버그는 모델이 자체적으로 수정).
+전체 채택 — 생성된 `searchMemos`(service.js)와 `GET /memos/search`(routes.js)를 수정 없이 그대로 사용했거 사람이 직접 고친 부분은 없음(제너레이션 중 발견된 이스케이프 처리 버그는 모델이 자체적으로 수정하였음).
 
 **참고**
 
-- `/memos/search` 라우트는 `/memos/:id`보다 먼저 선언해야 라우팅 충돌이 없음 (직접 확인).
+- `/memos/search` 라우트는 `/memos/:id`보다 먼저 선언해야 라우팅 충돌이 없음.
 - better-sqlite3 기반 테스트 9건(제목 매치, 본문 매치, 타인 메모 차단, 빈 쿼리 400, 공백 쿼리 400, 무매치 결과, 기존 라우트 정상 동작, LIKE 특수문자 `%` 이스케이프)을 실행하여 모두 통과 확인.
