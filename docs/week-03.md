@@ -2,8 +2,8 @@
 
 **도메인 문제 발굴 / Domain problem discovery**
 
-- 작성일 / Date: 
-- 참여자 / Present: 
+- 작성일 / Date: 2026-09-16
+- 참여자 / Present: 박영욱, 김현우
 
 ---
 
