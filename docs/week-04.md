@@ -11,14 +11,14 @@
 
 | 항목 Item | 내용 |
 |---|---|
-| 선택한 주제 Chosen |  |
-| 선택 근거 Why |  |
+| 선택한 주제 Chosen | 잠을 자는 것을 도와주는 게임 |
+| 선택 근거 Why | 현대인들의 수면부족 |
 
 ## ② 성공 기준 가져오기 / Success criteria from Week 3
 
 | 3주차 성공 기준 원문 Original (Week 3) | 모호한 표현 Vague words |
 |---|---|
-| 더 쉽게 잠들고 수면의 질이 좋아지도록 돕는다 | WHEN 사용자가 잠에 들기 전에 핸드폰으로 게임을 실행하면 THE 시스템은 핸드폰의 밝기를 50 nit 이하, 색 온도는 2300~2600K 범위로 줄이고  |
+| 더 쉽게 잠들고 수면의 질이 좋아지도록 돕는다 | WHEN 사용자가 잠에 들기 전에 핸드폰으로 게임을 실행하면 THE 시스템은 사용자가 지정한 시각 이전에 사용자가 잠에 들 경우 더 좋은 보상을 제공한다.  |
 |  |  |
 
 ## ③ Acceptance Criteria
@@ -29,9 +29,9 @@ At least two normal paths + one failure path. If "How to check" is empty, it is 
 | # | 경로 Path | EARS 문장 Sentence | 판정 방법 How to check |
 |---|---|---|---|
 | *예시* | *정상* | *WHEN 학생이 과제 목록을 열면 THE 시스템은 SHALL 과목별 미제출 과제를 마감일 순으로 표시한다* | *미제출 과제 3건을 만든 뒤 목록을 열어 마감일 순으로 나오는지 확인* |
-| AC-1 | 정상 Normal | WHEN  THE  SHALL  |  |
-| AC-2 | 정상 Normal | WHEN  THE  SHALL  |  |
-| AC-3 | 실패 Failure | IF  THEN THE  SHALL  |  |
+| AC-1 | 정상 Normal | WHEN 사용자가 게임을 실행하면  THE 시스템은  SHALL 사용자가 잠에 들었는지 확인한다.   | 전방 카메라와 마이크를 통해 사용자의 눈이 감겼는지 소리가 40db이하로 줄었는지 확인 |
+| AC-2 | 정상 Normal | WHEN 사용자가 지정한 시각 이내에 잠에 들었을 경우 THE 시스템은 SHALL 사용자에게 더 좋은 보상을 제공한다. | 사용자가 지정한 시각보다 더 일찍 잠에 들 경우 기존 보상보다 2배 더 제공함 |
+| AC-3 | 실패 Failure | IF 사용자가 지정한 시각 이내에 잠에 들지 못했을 경우 THEN THE 시스템은 SHALL 기본보다 더 적은 보상을 제공한다.  | 사용자가 지정한 시각에서 10분경과 할 떄 마다 보상이 10%씩 감소함 |
 
 > 확인할 동작이 더 있으면 AC-4부터 행을 추가해 쓰십시오.
 > If there are more behaviors to check, add rows from AC-4.
