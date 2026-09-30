@@ -21,18 +21,18 @@
 4주차 사용자 스토리와 완료 조건을 태스크로 나눕니다.
 *Break down your Week 4 user stories and acceptance criteria into tasks.*
 
-각 태스크는 따로 끝내도 맞는지 확인할 수 있어야 합니다. 담당에 '다 같이'는 쓰지 않습니다.
+사용자가 게임을 어플리케이션을 실행 중인 동안 사용자의 수면 여부를 주기적으로 판단한다.
+
 *Each task must be checkable on its own. Do not write "everyone" as owner.*
 
 | # | 태스크 Task | 완료 조건 Done when | 선행 태스크 Depends on | 담당 Owner |
 |---|---|---|---|---|
 |1|사용자가 원하는 수면의 길이와 깊이를 선택할 수 있는 화면 구성|화면에 사용자가 원하는 목표 수면의 시와 분을 설정할 수 있는 UI 표시|  |김현우, 박영욱|
-|2|핸드폰의 하드웨어 기능을 백그라운드로 실행해 사용자의 수면 여부와 수면의 정도 파악|  |  |  |
+|2|어플리케이션 백그라운드 실행 동안 화면 밝기와 색감을 수면에 적합하도록 변경|최대한 청색광이 들어가지|  |  |
 |  |  |  |  |  |
 |  |  |  |  |  |
 
 ### 의존 관계 그래프 / Dependency graph (DAG)
-
 화살표는 "앞 태스크가 끝나야 뒤 태스크를 할 수 있다"는 뜻입니다.
 *An arrow means the first task must finish before the second can start.*
 
