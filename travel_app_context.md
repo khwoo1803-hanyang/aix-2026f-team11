@@ -1,8 +1,8 @@
-﻿# 공동 여행 계획 앱 프로젝트 컨텍스트
+# 공동 여행 계획 앱 프로젝트 컨텍스트
 
 > VS Code / Codex 개발 참고 문서  
-> 버전: 1.0  
-> Project status: Flutter scaffold created; Supabase and MVP features are next.
+> 버전: 1.1 (2026-11-11 기술 구성과 진행 상황 최신화)  
+> 프로젝트 상태: Flutter 뼈대 생성(GitHub 미반영), Supabase 프로젝트 생성, 테이블과 MVP 기능은 구현 전
 
 ---
 
@@ -46,11 +46,12 @@
 | 구분 | 기술 | 사용 목적 |
 |---|---|---|
 | 모바일 앱 | Flutter | Android 및 iOS 개발 |
-| 프로그래밍 언어 | Dart | 앱 코드 작성 |
+| 프로그래밍 언어 | Dart | 앱 코드 작성 (Edge Functions만 TypeScript) |
+| 상태 관리 | Riverpod | 화면 상태와 데이터 구독 관리 |
 | 데이터베이스 | PostgreSQL | 여행 관련 데이터 저장 |
 | 백엔드 | Supabase | 인증, DB, 서버 기능 |
 | 실시간 통신 | Supabase Realtime | 채팅 및 데이터 동기화 |
-| AI | OpenAI API | 채팅 분석 및 여행지 추천 |
+| AI | OpenAI API, Claude API | 기능별 분담: 채팅 분석은 OpenAI, 여행지 추천은 Claude (제공자는 서버 설정으로 지정, 실패 시 다른 제공자로 대체) |
 | 지도 | Google Maps API | 장소 검색 및 지도 |
 | 서버 로직 | Supabase Edge Functions | AI 및 주요 비즈니스 로직 |
 
@@ -60,7 +61,7 @@
 
 Flutter 앱이 사용자 인터페이스를 담당하고, Supabase가 데이터베이스와 인증을 담당한다.
 
-AI 분석과 추천은 Supabase Edge Functions를 통해 OpenAI API에 요청한다.
+AI 분석과 추천은 Supabase Edge Functions의 공통 AI 모듈(`supabase/functions/_shared/ai/`)을 통해 OpenAI API 또는 Claude API에 요청한다. 앱은 어떤 제공자가 쓰이는지 알지 못한다.
 
 ```text
 [Flutter Application]
@@ -76,7 +77,7 @@ AI 분석과 추천은 Supabase Edge Functions를 통해 OpenAI API에 요청한
           |
     +-----+------+
     |            |
- [OpenAI]    [External APIs]
+ [OpenAI / Claude]  [External APIs]
                |
           [Google Maps]
 ```
@@ -217,7 +218,7 @@ AI는 단순한 대화형 챗봇이 아니라 여행 계획을 지원하는 분�
 1. 사용자가 채팅을 작성한다.
 2. 메시지가 Supabase에 저장된다.
 3. Edge Function이 분석할 메시지를 선별한다.
-4. OpenAI API에 메시지와 기존 여행 조건을 전달한다.
+4. 공통 AI 모듈이 설정된 제공자(기본 OpenAI)에 메시지와 기존 여행 조건을 전달한다.
 5. AI가 구조화된 조건을 반환한다.
 6. 추출된 조건을 condition_proposals에 저장한다.
 7. 사용자가 조건을 확인하고 수정한다.
@@ -414,6 +415,7 @@ travel-app/
 ├── supabase/
 │   ├── migrations/
 │   ├── functions/
+│   │   ├── _shared/ai/
 │   │   ├── join-room/
 │   │   ├── analyze-chat/
 │   │   ├── recommend-destinations/
@@ -437,7 +439,7 @@ travel-app/
 
 | 단계 | 개발 내용 | 우선순위 |
 |---|---|---|
-| 1 | Flutter project scaffold | completed |
+| 1 | Flutter 프로젝트 뼈대 | 로컬 완료 (GitHub 미반영) |
 | 2 | Supabase 연결 및 인증 | 필수 |
 | 3 | 여행방 생성 및 초대 코드 | 필수 |
 | 4 | 실시간 채팅 | 필수 |
@@ -494,7 +496,7 @@ Codex가 이 프로젝트를 개발할 때 다음 규칙을 지킨다.
 
 ## 10.3 AI 개발 원칙
 
-1. OpenAI API 키를 클라이언트에 노출하지 않는다.
+1. OpenAI API 키와 Claude API 키를 클라이언트에 노출하지 않는다. 각 키는 소유자가 Supabase secrets에 직접 등록한다.
 2. Edge Functions에서 AI 요청을 처리한다.
 3. AI 응답은 구조화된 JSON으로 처리한다.
 4. AI가 추출한 조건은 사용자 승인 후 저장한다.
@@ -515,31 +517,54 @@ Codex가 이 프로젝트를 개발할 때 다음 규칙을 지킨다.
 
 # 11. 현재 개발 상태 및 다음 작업
 
-## Current implementation status (2026-11-11)
+## 현재 개발 상태 (2026-11-11)
 
-- Mobile client: Flutter 3.47.9 / Dart 3.13.7.
-- Backend client: `supabase_flutter` 2.18.3.
-- Android, iOS, and Web project files have been generated.
-- Dart static analysis passed and `flutter build web` completed successfully.
-- Android SDK is not installed on this machine. Android builds require Android Studio and Android SDK; iOS builds require macOS and Xcode.
-- Flutter SDK is installed at `%USERPROFILE%\flutter`; add `%USERPROFILE%\flutter\bin` to the current PowerShell PATH to use `flutter` and `dart` commands by name.
-- Supabase values are supplied with `--dart-define-from-file=.env.json`. Keep the publishable key only in the client; never put service-role or OpenAI secrets in the app.
+### 확정한 기술 구성
 
-The Flutter workspace is configured, but the Supabase database and product features are not implemented yet.
+- 앱: Flutter 3.47.9 / Dart 3.13.7, 상태 관리 Riverpod
+- 백엔드: Supabase (`supabase_flutter` 2.18.3). Firebase 계획은 폐기했다.
+- AI: 채팅 조건 추출은 OpenAI API, 여행지 추천은 Claude API. 키는 각 소유자가 Supabase secrets에 직접 등록한다.
+- 지도: Google Maps Platform. 결제 계정과 카드 등록이 필요하고, 한국 내 자동차·도보 길찾기는 제한될 수 있다.
+
+### PC별 개발 환경
+
+| 항목 | 문서 1.0 작성 PC | 김현우 PC |
+|---|---|---|
+| Flutter SDK 위치 | `%USERPROFILE%\flutter` | `%USERPROFILE%\develop\flutter` (OneDrive 밖으로 복사, PATH 변경 전) |
+| Android SDK | 미설치 | 설치됨, 에뮬레이터 있음, NDK 28.2 미설치 |
+| 웹 빌드 | 성공 | 성공 |
+| Android 빌드 | 불가 | 실패 (NDK 28.2 필요) |
+| 설정 파일 | `.env.json` | `env.json` |
+
+iOS 빌드는 macOS와 Xcode가 필요하다. 설정 파일에는 Supabase URL과 publishable 키만 넣고, `--dart-define-from-file`로 전달한다. secret 키와 AI API 키는 앱에 넣지 않는다.
+
+### 구현 상태
+
+- 김현우 PC의 `feature/flutter-setup`에 Flutter 뼈대가 있다. 앱 시작, Supabase 초기화 코드, 임시 시작 화면까지이고 아직 GitHub에 올리지 않았다. `main`에는 Flutter 프로젝트가 없다.
+- 위 뼈대는 코드 분석과 테스트 2개를 통과했다. 기기나 브라우저에서 실행해 보지는 않았다.
+- Supabase 프로젝트는 생성했다. 연결 테스트, 테이블, RLS, Edge Functions는 구현 전이다.
+- 로그인, 여행방, 채팅, 투표, AI, 지도 기능은 구현 전이다.
+
+### 결정이 필요한 항목
+
+- Flutter 뼈대가 두 PC에 따로 있으면 어느 쪽을 기준으로 할지 정한다.
+- 설정 파일 이름을 `.env.json`과 `env.json` 중 하나로 통일한다.
+- 지도와 공동 일정표를 11주차 MVP에 포함할지 정한다. 활동지 7주차는 포함, 이 문서 9장은 확장 기능으로 되어 있다.
+- 채팅 위치를 하단 탭과 오른쪽 아래 채팅 버튼 중 하나로 정한다.
 
 ## 다음 작업 순서
 
-### STEP 1. 개발 환경 구성 (완료)
+### STEP 1. 개발 환경 구성 (일부 완료)
 - Flutter 3.47.9 / Dart 3.13.7 설치 확인 완료
 - VS Code 및 Codex 연결
-- Flutter 개발 환경 구성
-- Android, iOS, Web Flutter 프로젝트 생성 완료
+- Flutter 개발 환경 구성 (웹 빌드 확인, Android는 NDK 28.2 설치 후 재확인 필요)
+- Android, iOS, Web Flutter 프로젝트 생성 완료 (로컬, GitHub 미반영)
 
 ### STEP 2. Supabase 설정
-- Supabase 프로젝트 생성
-- 환경 변수 설정
-- Supabase SDK 설치
-- 데이터베이스 연결 확인
+- Supabase 프로젝트 생성 (완료)
+- 환경 변수 설정 (URL 입력 완료, publishable 키 미입력)
+- Supabase SDK 설치 (완료)
+- 데이터베이스 연결 확인 (미완료)
 
 ### STEP 3. 데이터베이스 구축
 - 초기 SQL Migration 작성
