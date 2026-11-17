@@ -1,8 +1,8 @@
-﻿# 공동 여행 계획 앱 프로젝트 컨텍스트
+# 공동 여행 계획 앱 프로젝트 컨텍스트
 
 > VS Code / Codex 개발 참고 문서  
-> 버전: 1.0  
-> Project status: Flutter scaffold created; Supabase and MVP features are next.
+> 버전: 1.2 (2026-11-18 앱 개발 진행 상황 최신화)  
+> 프로젝트 상태: 회원가입·로그인, 여행방 생성·초대 코드 입장, 실시간 채팅 구현 완료(PR #4~#6 리뷰 대기). 여행지 투표, AI, 지도는 구현 전
 
 ---
 
@@ -46,11 +46,12 @@
 | 구분 | 기술 | 사용 목적 |
 |---|---|---|
 | 모바일 앱 | Flutter | Android 및 iOS 개발 |
-| 프로그래밍 언어 | Dart | 앱 코드 작성 |
+| 프로그래밍 언어 | Dart | 앱 코드 작성 (Edge Functions만 TypeScript) |
+| 상태 관리 | Riverpod | 화면 상태와 데이터 구독 관리 |
 | 데이터베이스 | PostgreSQL | 여행 관련 데이터 저장 |
 | 백엔드 | Supabase | 인증, DB, 서버 기능 |
 | 실시간 통신 | Supabase Realtime | 채팅 및 데이터 동기화 |
-| AI | OpenAI API | 채팅 분석 및 여행지 추천 |
+| AI | OpenAI API, Claude API | 기능별 분담: 채팅 분석은 OpenAI, 여행지 추천은 Claude (제공자는 서버 설정으로 지정, 실패 시 다른 제공자로 대체) |
 | 지도 | Google Maps API | 장소 검색 및 지도 |
 | 서버 로직 | Supabase Edge Functions | AI 및 주요 비즈니스 로직 |
 
@@ -60,7 +61,7 @@
 
 Flutter 앱이 사용자 인터페이스를 담당하고, Supabase가 데이터베이스와 인증을 담당한다.
 
-AI 분석과 추천은 Supabase Edge Functions를 통해 OpenAI API에 요청한다.
+AI 분석과 추천은 Supabase Edge Functions의 공통 AI 모듈(`supabase/functions/_shared/ai/`)을 통해 OpenAI API 또는 Claude API에 요청한다. 앱은 어떤 제공자가 쓰이는지 알지 못한다.
 
 ```text
 [Flutter Application]
@@ -76,7 +77,7 @@ AI 분석과 추천은 Supabase Edge Functions를 통해 OpenAI API에 요청한
           |
     +-----+------+
     |            |
- [OpenAI]    [External APIs]
+ [OpenAI / Claude]  [External APIs]
                |
           [Google Maps]
 ```
@@ -217,7 +218,7 @@ AI는 단순한 대화형 챗봇이 아니라 여행 계획을 지원하는 분�
 1. 사용자가 채팅을 작성한다.
 2. 메시지가 Supabase에 저장된다.
 3. Edge Function이 분석할 메시지를 선별한다.
-4. OpenAI API에 메시지와 기존 여행 조건을 전달한다.
+4. 공통 AI 모듈이 설정된 제공자(기본 OpenAI)에 메시지와 기존 여행 조건을 전달한다.
 5. AI가 구조화된 조건을 반환한다.
 6. 추출된 조건을 condition_proposals에 저장한다.
 7. 사용자가 조건을 확인하고 수정한다.
@@ -414,6 +415,7 @@ travel-app/
 ├── supabase/
 │   ├── migrations/
 │   ├── functions/
+│   │   ├── _shared/ai/
 │   │   ├── join-room/
 │   │   ├── analyze-chat/
 │   │   ├── recommend-destinations/
@@ -437,10 +439,10 @@ travel-app/
 
 | 단계 | 개발 내용 | 우선순위 |
 |---|---|---|
-| 1 | Flutter project scaffold | completed |
-| 2 | Supabase 연결 및 인증 | 필수 |
-| 3 | 여행방 생성 및 초대 코드 | 필수 |
-| 4 | 실시간 채팅 | 필수 |
+| 1 | Flutter 프로젝트 뼈대 | 완료 (#4) |
+| 2 | Supabase 연결 및 인증 | 필수, 완료 (#5) |
+| 3 | 여행방 생성 및 초대 코드 | 필수, 완료 (#5) |
+| 4 | 실시간 채팅 | 필수, 완료 (#6) |
 | 5 | 여행 조건 관리 | 필수 |
 | 6 | 여행지 후보 및 투표 | 필수 |
 | 7 | AI 채팅 분석 | 핵심 |
@@ -494,7 +496,7 @@ Codex가 이 프로젝트를 개발할 때 다음 규칙을 지킨다.
 
 ## 10.3 AI 개발 원칙
 
-1. OpenAI API 키를 클라이언트에 노출하지 않는다.
+1. OpenAI API 키와 Claude API 키를 클라이언트에 노출하지 않는다. 각 키는 소유자가 Supabase secrets에 직접 등록한다.
 2. Edge Functions에서 AI 요청을 처리한다.
 3. AI 응답은 구조화된 JSON으로 처리한다.
 4. AI가 추출한 조건은 사용자 승인 후 저장한다.
@@ -515,56 +517,110 @@ Codex가 이 프로젝트를 개발할 때 다음 규칙을 지킨다.
 
 # 11. 현재 개발 상태 및 다음 작업
 
-## Current implementation status (2026-11-11)
+## 현재 개발 상태 (2026-11-18)
 
-- Mobile client: Flutter 3.47.9 / Dart 3.13.7.
-- Backend client: `supabase_flutter` 2.18.3.
-- Android, iOS, and Web project files have been generated.
-- Dart static analysis passed and `flutter build web` completed successfully.
-- Android SDK is not installed on this machine. Android builds require Android Studio and Android SDK; iOS builds require macOS and Xcode.
-- Flutter SDK is installed at `%USERPROFILE%\flutter`; add `%USERPROFILE%\flutter\bin` to the current PowerShell PATH to use `flutter` and `dart` commands by name.
-- Supabase values are supplied with `--dart-define-from-file=.env.json`. Keep the publishable key only in the client; never put service-role or OpenAI secrets in the app.
+### 확정한 기술 구성
 
-The Flutter workspace is configured, but the Supabase database and product features are not implemented yet.
+- 앱: Flutter 3.47.9 / Dart 3.13.7, 상태 관리 Riverpod
+- 백엔드: Supabase (`supabase_flutter` 2.18.3). Firebase 계획은 폐기했다.
+- AI: 채팅 조건 추출은 OpenAI API, 여행지 추천은 Claude API. 키는 각 소유자가 Supabase secrets에 직접 등록한다.
+- 지도: Google Maps Platform. 결제 계정과 카드 등록이 필요하고, 한국 내 자동차·도보 길찾기는 제한될 수 있다.
+- 채팅 위치: 여행방 화면 오른쪽 아래 채팅 버튼을 누르면 아래에서 올라오는 채팅창
+- 설정 파일: `env.json` (`env.example.json`을 복사해 Supabase URL과 publishable 키를 넣는다. Git에서 제외)
+
+### GitHub 반영 상태
+
+앱 코드는 PR로 올라가 있고 아직 `main`에 머지되지 않았다. #4 → #5 → #6 순서로 머지해야 한다.
+
+| PR | 내용 | 상태 |
+|---|---|---|
+| #4 | Flutter 뼈대, Supabase 연결 설정 | 리뷰 대기 |
+| #5 | 회원가입·로그인, 여행방 생성, 초대 코드 입장 (DB 포함) | 리뷰 대기 |
+| #6 | 여행방 실시간 채팅 (DB 포함) | 리뷰 대기 |
+| #1, #2 | 중복 활동지 정리, 기술 구성 변경에 따른 활동지 수정 | 리뷰 대기 |
+
+### 구현 완료
+
+**DB** (Supabase에 2026-11-18 적용, 파일은 `supabase/migrations/`)
+- 테이블: `profiles`, `travel_rooms`, `room_members`, `messages`
+- 회원가입하면 프로필 자동 생성
+- `create_room`: 여행방과 6자리 초대 코드 생성, 만든 사람을 방장으로 등록 (헷갈리는 문자 0, O, 1, I 제외)
+- `join_room_by_code`: 초대 코드로 입장, 이미 멤버면 그대로 유지
+- RLS: 여행방·멤버·메시지는 멤버만 조회, 여행방 수정은 방장만, 메시지는 본인 이름으로만 작성
+- `messages` 실시간 전달
+
+**앱**
+- 로그인 / 회원가입 (오류 문구 한국어 안내)
+- 내 여행방 목록, 여행방 만들기, 초대 코드 입장
+- 여행방 화면: 초대 코드 표시·복사, 멤버 목록과 방장 표시
+- 오른쪽 아래 채팅 버튼과 실시간 채팅창 (내 메시지 오른쪽, 다른 멤버 메시지 왼쪽에 닉네임·시간 표시)
+
+### 확인 결과
+
+- `flutter analyze` 문제 없음, `flutter test` 11개 통과, 웹 빌드와 Android 디버그 빌드 성공
+- 실제 Supabase에서 테스트 계정으로 확인
+  - 멤버가 아닌 계정은 여행방, 멤버, 메시지를 볼 수 없고 멤버로 끼어들 수도 없음
+  - 방장이 아니면 여행방 이름을 바꿀 수 없음
+  - 다른 사람 이름이나 공백만으로는 메시지를 보낼 수 없음
+  - 보낸 메시지가 다른 멤버에게 약 0.4초 만에 실시간 도착
+- 확인 안 됨: 앱 화면을 직접 눌러 보는 확인, 기기 2대 동시 확인
+
+### PC별 개발 환경
+
+| 항목 | 문서 1.0 작성 PC | 김현우 PC |
+|---|---|---|
+| Flutter SDK 위치 | `%USERPROFILE%\flutter` | `%USERPROFILE%\develop\flutter` |
+| Android SDK | 미설치 | 설치됨, 에뮬레이터 있음, NDK 28.2 설치 |
+| 웹 빌드 | 성공 | 성공 |
+| Android 빌드 | 불가 | 성공 |
+
+iOS 빌드는 macOS와 Xcode가 필요하다. secret 키와 AI API 키는 앱에 넣지 않는다.
+
+### 결정이 필요한 항목
+
+- 지도와 공동 일정표를 11주차 MVP에 포함할지 정한다. 활동지 7주차는 포함, 이 문서 9장은 확장 기능으로 되어 있다.
+- 개발 중에는 Supabase 가입 확인 메일(Confirm email)을 꺼 두었다. 발표 전에 다시 켤지 정한다.
+- 테스트 계정(`qa-`로 시작하는 `@example.com` 계정)을 정리한다.
 
 ## 다음 작업 순서
 
 ### STEP 1. 개발 환경 구성 (완료)
 - Flutter 3.47.9 / Dart 3.13.7 설치 확인 완료
 - VS Code 및 Codex 연결
-- Flutter 개발 환경 구성
-- Android, iOS, Web Flutter 프로젝트 생성 완료
+- Flutter 개발 환경 구성 완료 (웹, Android 빌드 확인)
+- Android, iOS, Web Flutter 프로젝트 생성 완료 (#4)
 
-### STEP 2. Supabase 설정
-- Supabase 프로젝트 생성
-- 환경 변수 설정
-- Supabase SDK 설치
-- 데이터베이스 연결 확인
+### STEP 2. Supabase 설정 (완료)
+- Supabase 프로젝트 생성 (완료)
+- 환경 변수 설정 (완료)
+- Supabase SDK 설치 (완료)
+- 데이터베이스 연결 확인 (완료)
 
-### STEP 3. 데이터베이스 구축
-- 초기 SQL Migration 작성
-- 핵심 테이블 생성
-- 외래 키 및 UNIQUE 제약 조건
-- RLS 정책 작성
-- 데이터 조회 테스트
+### STEP 3. 데이터베이스 구축 (진행 중)
+- 초기 SQL Migration 작성 (완료)
+- 핵심 테이블 생성 (`profiles`, `travel_rooms`, `room_members`, `messages` 완료)
+- 외래 키 및 UNIQUE 제약 조건 (완료)
+- RLS 정책 작성 (완료)
+- 데이터 조회 테스트 (완료)
+- 남은 테이블: `travel_conditions`, `condition_proposals`, `destinations`, `destination_votes` 등
 
-### STEP 4. 첫 번째 기능 구현
-- 회원가입
-- 로그인
-- 메인 화면
-- 여행방 생성
-- 초대 코드 입장
+### STEP 4. 첫 번째 기능 구현 (완료, #5)
+- 회원가입 (완료)
+- 로그인 (완료)
+- 메인 화면 (여행방 목록 완료)
+- 여행방 생성 (완료)
+- 초대 코드 입장 (완료)
 
-### STEP 5. 공동 작업 기능
-- 멤버 관리
-- 실시간 채팅
+### STEP 5. 공동 작업 기능 (진행 중)
+- 멤버 관리 (멤버 목록 완료)
+- 실시간 채팅 (완료, #6)
 - 여행 조건 저장
 - 투표 기능
 
 ### STEP 6. AI 및 여행 기능
-- 채팅 분석
-- 여행지 추천
-- 지도 검색
+- 채팅 분석 (OpenAI API 키 필요)
+- 여행지 추천 (Claude API 키 필요)
+- 지도 검색 (Google Maps 결제 계정 필요)
 - 공동 일정 관리
 
 ---
