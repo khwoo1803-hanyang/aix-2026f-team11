@@ -6,6 +6,7 @@ class TravelRoom {
     required this.ownerId,
     required this.createdAt,
     this.expectedMembers,
+    this.confirmedDestinationId,
   });
 
   factory TravelRoom.fromJson(Map<String, dynamic> json) {
@@ -15,6 +16,7 @@ class TravelRoom {
       inviteCode: json['invite_code'] as String,
       ownerId: json['owner_id'] as String,
       expectedMembers: json['expected_members'] as int?,
+      confirmedDestinationId: json['confirmed_destination_id'] as String?,
       createdAt: DateTime.parse(json['created_at'] as String),
     );
   }
@@ -24,6 +26,7 @@ class TravelRoom {
   final String inviteCode;
   final String ownerId;
   final int? expectedMembers;
+  final String? confirmedDestinationId;
   final DateTime createdAt;
 }
 
