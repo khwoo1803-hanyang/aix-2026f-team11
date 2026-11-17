@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../providers/room_provider.dart';
+import '../chat/chat_sheet.dart';
 
 /// 여행방 대시보드. 지금은 초대 코드와 멤버 목록만 보여준다.
 class RoomScreen extends ConsumerWidget {
@@ -17,6 +18,7 @@ class RoomScreen extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(title: Text(room.value?.name ?? '여행방')),
+      floatingActionButton: ChatButton(roomId: roomId),
       body: RefreshIndicator(
         onRefresh: () => ref.refresh(roomMembersProvider(roomId).future),
         child: ListView(
