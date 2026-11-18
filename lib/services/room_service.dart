@@ -56,13 +56,13 @@ class RoomService {
     }
   }
 
-  Future<TravelRoom> fetchRoom(String roomId) async {
-    final row = await _client
+  Stream<TravelRoom> watchRoom(String roomId) {
+    return _client
         .from('travel_rooms')
-        .select('id, name, invite_code, owner_id, expected_members, created_at')
+        .stream(primaryKey: ['id'])
         .eq('id', roomId)
-        .single();
-    return TravelRoom.fromJson(row);
+        .where((rows) => rows.isNotEmpty)
+        .map((rows) => TravelRoom.fromJson(rows.first));
   }
 
   Future<List<RoomMember>> fetchMembers(String roomId) async {
