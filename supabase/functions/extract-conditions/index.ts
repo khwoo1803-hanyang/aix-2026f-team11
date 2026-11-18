@@ -1,7 +1,7 @@
 // 채팅 조건 추출 (활동지 #5)
 // 여행방의 최근 채팅을 OpenAI로 읽어 인원·날짜·출발지·이동수단·예산·활동을 뽑고,
 // 요청한 멤버의 권한으로 trip_conditions에 저장한다.
-// AI 호출이 실패하면 아무것도 저장하지 않는다.
+// AI 호출이 실패하면 아무것도 저장하지 않고, 멤버가 직접 고친 항목은 덮어쓰지 않는다.
 //
 // 필요한 Secrets: OPENAI_API_KEY (선택: OPENAI_MODEL)
 // 대시보드에서 바로 붙여 넣어 배포할 수 있도록 파일 하나로 둔다.
@@ -83,9 +83,25 @@ type Extracted = {
   inferred: boolean;
 };
 
+// 실패 이유를 키 내용 없이 짧은 코드로 알려준다. (대시보드 로그를 보지 않아도 원인을 알 수 있게)
+class AIError extends Error {
+  constructor(readonly reason: string, message: string) {
+    super(message);
+  }
+}
+
+function reasonFor(status: number, body: string): string {
+  if (status === 401) return "ai_key_invalid";
+  if (status === 429 && body.includes("insufficient_quota")) return "ai_no_credit";
+  if (status === 429) return "ai_rate_limited";
+  if (status === 404 || body.includes("model_not_found")) return "ai_model_unavailable";
+  if (status === 403) return "ai_access_denied";
+  return `ai_http_${status}`;
+}
+
 async function askOpenAI(chat: string): Promise<Extracted[]> {
-  const apiKey = Deno.env.get("OPENAI_API_KEY");
-  if (!apiKey) throw new Error("OPENAI_API_KEY is not set");
+  const apiKey = Deno.env.get("OPENAI_API_KEY")?.trim();
+  if (!apiKey) throw new AIError("ai_key_missing", "OPENAI_API_KEY is not set");
 
   const response = await fetch("https://api.openai.com/v1/chat/completions", {
     method: "POST",
@@ -105,7 +121,8 @@ async function askOpenAI(chat: string): Promise<Extracted[]> {
   });
 
   if (!response.ok) {
-    throw new Error(`OpenAI ${response.status}: ${(await response.text()).slice(0, 300)}`);
+    const body = await response.text();
+    throw new AIError(reasonFor(response.status, body), `OpenAI ${response.status}: ${body.slice(0, 300)}`);
   }
   const data = await response.json();
   const content = data.choices?.[0]?.message?.content;
@@ -181,7 +198,12 @@ Deno.serve(async (req) => {
     extracted = await askOpenAI(chat);
   } catch (error) {
     console.error(error);
-    return reply(502, { error: "ai_failed" });
+    const reason = error instanceof AIError
+      ? error.reason
+      : error instanceof DOMException && error.name === "TimeoutError"
+      ? "ai_timeout"
+      : "ai_bad_response";
+    return reply(502, { error: "ai_failed", reason });
   }
 
   // AI 결과를 그대로 믿지 않고 항목, 길이, 출처를 다시 확인한다. 같은 항목은 마지막 것만 쓴다.
@@ -196,16 +218,26 @@ Deno.serve(async (req) => {
       inferred: item.inferred === true,
     });
   }
-  const conditions = [...byField.values()];
-  if (conditions.length === 0) return reply(200, { conditions: [] });
+  // 멤버가 직접 고친 항목(manual)은 AI가 덮어쓰지 않는다.
+  const { data: manualRows, error: manualError } = await supabase
+    .from("trip_conditions")
+    .select("field")
+    .eq("room_id", roomId)
+    .eq("manual", true);
+  if (manualError) return reply(500, { error: "db_error" });
+  const manualFields = new Set(manualRows.map((row) => row.field as string));
+  const kept = [...byField.keys()].filter((field) => manualFields.has(field)).length;
+
+  const conditions = [...byField.values()].filter((c) => !manualFields.has(c.field));
+  if (conditions.length === 0) return reply(200, { conditions: [], kept_manual: kept });
 
   const { error: saveError } = await supabase
     .from("trip_conditions")
-    .upsert(conditions.map((c) => ({ room_id: roomId, ...c })), { onConflict: "room_id,field" });
+    .upsert(conditions.map((c) => ({ room_id: roomId, ...c, manual: false })), { onConflict: "room_id,field" });
   if (saveError) {
     console.error(saveError);
     return reply(500, { error: "db_error" });
   }
 
-  return reply(200, { conditions });
+  return reply(200, { conditions, kept_manual: kept });
 });

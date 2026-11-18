@@ -25,18 +25,55 @@ class ConditionService {
         .map((rows) => rows.map(TripCondition.fromJson).nonNulls.toList());
   }
 
-  /// 채팅을 AI로 읽어 조건을 저장하고, 이번에 찾은 조건 수를 돌려준다.
-  /// AI 호출이 실패하면 조건은 바뀌지 않는다.
-  Future<int> extractFromChat(String roomId) async {
+  /// 채팅을 AI로 읽어 조건을 저장한다.
+  /// AI 호출이 실패하면 조건은 바뀌지 않고, 직접 고친 항목은 덮어쓰지 않는다.
+  Future<ExtractResult> extractFromChat(String roomId) async {
     try {
       final response = await _client.functions.invoke(
         'extract-conditions',
         body: {'room_id': roomId},
       );
-      final conditions = (response.data as Map<String, dynamic>)['conditions'];
-      return conditions is List ? conditions.length : 0;
+      final data = response.data as Map<String, dynamic>;
+      final conditions = data['conditions'];
+      return (
+        found: conditions is List ? conditions.length : 0,
+        kept: data['kept_manual'] as int? ?? 0,
+      );
     } on FunctionException catch (error) {
       throw _describe(error);
+    }
+  }
+
+  /// 멤버가 직접 입력한 값으로 저장한다. 출처와 AI 추측 표시는 지운다.
+  Future<void> save({
+    required String roomId,
+    required ConditionField field,
+    required String value,
+  }) async {
+    try {
+      await _client.from('trip_conditions').upsert({
+        'room_id': roomId,
+        'field': field.value,
+        'value': value,
+        'source_message_id': null,
+        'inferred': false,
+        'manual': true,
+      }, onConflict: 'room_id,field');
+    } on PostgrestException {
+      throw const ConditionException('저장하지 못했어요. 다시 시도해 주세요.');
+    }
+  }
+
+  /// 항목을 비운다. 비운 항목은 다음 AI 정리 때 다시 채워질 수 있다.
+  Future<void> clear({required String roomId, required ConditionField field}) async {
+    try {
+      await _client
+          .from('trip_conditions')
+          .delete()
+          .eq('room_id', roomId)
+          .eq('field', field.value);
+    } on PostgrestException {
+      throw const ConditionException('비우지 못했어요. 다시 시도해 주세요.');
     }
   }
 }
