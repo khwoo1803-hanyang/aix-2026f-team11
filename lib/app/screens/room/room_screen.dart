@@ -2,12 +2,15 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../models/trip_condition.dart';
+import '../../../providers/condition_provider.dart';
 import '../../../providers/destination_provider.dart';
 import '../../../providers/room_provider.dart';
 import '../chat/chat_sheet.dart';
+import '../conditions/conditions_screen.dart';
 import '../destination/destination_vote_screen.dart';
 
-/// 여행방 대시보드. 지금은 초대 코드와 멤버 목록만 보여준다.
+/// 여행방 대시보드. 초대 코드, 여행 조건, 여행지 투표, 멤버 목록을 보여준다.
 class RoomScreen extends ConsumerWidget {
   const RoomScreen({super.key, required this.roomId});
 
@@ -20,6 +23,13 @@ class RoomScreen extends ConsumerWidget {
       if (destination.id == confirmedId) return '확정: ${destination.name}';
     }
     return list.isEmpty ? '아직 후보가 없어요' : '후보 ${list.length}개 투표 중';
+  }
+
+  String _conditionSummary(WidgetRef ref) {
+    final list = ref.watch(roomConditionsProvider(roomId)).value;
+    if (list == null) return '조건을 불러오는 중';
+    if (list.isEmpty) return '채팅에서 조건을 정리해 보세요';
+    return '${ConditionField.values.length}개 중 ${list.length}개 정리됨';
   }
 
   @override
@@ -59,6 +69,19 @@ class RoomScreen extends ConsumerWidget {
               ),
             ),
             const SizedBox(height: 8),
+            Card(
+              child: ListTile(
+                leading: const Icon(Icons.checklist),
+                title: const Text('여행 조건'),
+                subtitle: Text(_conditionSummary(ref)),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () => Navigator.of(context).push(
+                  MaterialPageRoute<void>(
+                    builder: (_) => ConditionsScreen(roomId: roomId),
+                  ),
+                ),
+              ),
+            ),
             Card(
               child: ListTile(
                 leading: const Icon(Icons.how_to_vote_outlined),
