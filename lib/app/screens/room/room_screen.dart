@@ -6,8 +6,9 @@ import '../../../providers/destination_provider.dart';
 import '../../../providers/room_provider.dart';
 import '../chat/chat_sheet.dart';
 import '../destination/destination_vote_screen.dart';
+import 'travel_conditions_screen.dart';
 
-/// 여행방 대시보드. 지금은 초대 코드와 멤버 목록만 보여준다.
+/// 여행방 정보와 공동 계획 기능의 진입점을 제공한다.
 class RoomScreen extends ConsumerWidget {
   const RoomScreen({super.key, required this.roomId});
 
@@ -59,6 +60,18 @@ class RoomScreen extends ConsumerWidget {
               ),
             ),
             const SizedBox(height: 8),
+            Card(
+              child: ListTile(
+                leading: const Icon(Icons.tune),
+                title: const Text('여행 조건'),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () => Navigator.of(context).push(
+                  MaterialPageRoute<void>(
+                    builder: (_) => TravelConditionsScreen(roomId: roomId),
+                  ),
+                ),
+              ),
+            ),
             Card(
               child: ListTile(
                 leading: const Icon(Icons.how_to_vote_outlined),
