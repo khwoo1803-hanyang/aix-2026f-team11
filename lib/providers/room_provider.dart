@@ -12,8 +12,9 @@ final myRoomsProvider = FutureProvider<List<TravelRoom>>((ref) {
   return ref.watch(roomServiceProvider).fetchMyRooms();
 });
 
-final roomProvider = FutureProvider.family<TravelRoom, String>((ref, roomId) {
-  return ref.watch(roomServiceProvider).fetchRoom(roomId);
+/// 방장이 여행지를 확정하면 다른 멤버 화면에도 바로 반영되도록 실시간으로 받는다.
+final roomProvider = StreamProvider.family<TravelRoom, String>((ref, roomId) {
+  return ref.watch(roomServiceProvider).watchRoom(roomId);
 });
 
 final roomMembersProvider =

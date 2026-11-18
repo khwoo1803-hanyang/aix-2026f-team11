@@ -2,14 +2,25 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../providers/destination_provider.dart';
 import '../../../providers/room_provider.dart';
 import '../chat/chat_sheet.dart';
+import '../destination/destination_vote_screen.dart';
 
 /// 여행방 대시보드. 지금은 초대 코드와 멤버 목록만 보여준다.
 class RoomScreen extends ConsumerWidget {
   const RoomScreen({super.key, required this.roomId});
 
   final String roomId;
+
+  String _voteSummary(WidgetRef ref, String? confirmedId) {
+    final list = ref.watch(roomDestinationsProvider(roomId)).value;
+    if (list == null) return '후보를 불러오는 중';
+    for (final destination in list) {
+      if (destination.id == confirmedId) return '확정: ${destination.name}';
+    }
+    return list.isEmpty ? '아직 후보가 없어요' : '후보 ${list.length}개 투표 중';
+  }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -43,6 +54,20 @@ class RoomScreen extends ConsumerWidget {
                         const SnackBar(content: Text('초대 코드를 복사했습니다.')),
                       );
                     },
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(height: 8),
+            Card(
+              child: ListTile(
+                leading: const Icon(Icons.how_to_vote_outlined),
+                title: const Text('여행지 투표'),
+                subtitle: Text(_voteSummary(ref, room.value?.confirmedDestinationId)),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () => Navigator.of(context).push(
+                  MaterialPageRoute<void>(
+                    builder: (_) => DestinationVoteScreen(roomId: roomId),
                   ),
                 ),
               ),
