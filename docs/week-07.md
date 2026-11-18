@@ -2,7 +2,7 @@
 
 | 팀명 / Team | 작성일 / Date | 참여자 / Members |
 |---|---|---|
-|패트와매트|2026.10.14 (수정 2026.11.11, 9주차 주제 변경 반영)|김현우, 박영욱|
+|패트와매트|2026.10.14 (수정 2026.11.11, 9주차 주제 변경 및 Supabase·AI·지도 구성 변경 반영)|김현우, 박영욱|
 
 ## 1. 아키텍처 다이어그램 / Architecture Diagram
 
@@ -11,19 +11,21 @@
 ```mermaid
 graph TD
     App["Flutter 앱 (Riverpod)"]
-    App --> Auth["Firebase Auth<br/>로그인"]
-    App --> Store["Cloud Firestore<br/>여행방·채팅·조건·투표·일정"]
-    App --> Kakao["카카오맵 / 로컬 API<br/>지도·장소 검색"]
-    App --> Fn["Cloud Functions<br/>API 키 보관"]
-    Fn --> Claude["Claude API<br/>조건 추출·여행지 추천"]
+    App --> Auth["Supabase Auth<br/>로그인"]
+    App --> Store["Supabase PostgreSQL + Realtime<br/>여행방·채팅·조건·투표·일정"]
+    App --> Maps["Google Maps SDK<br/>지도 표시"]
+    App --> Fn["Supabase Edge Functions<br/>API 키 보관"]
+    Fn --> OpenAI["OpenAI API<br/>조건 추출"]
+    Fn --> Claude["Claude API<br/>여행지 추천"]
+    Fn --> Places["Google Places API<br/>장소 검색"]
     Fn --> Store
 ```
 
 | 계층 / Layer | 모듈·파일 / Modules | 의존하지 않는 것 / Does not depend on |
 |---|---|---|
-| 표현 / Presentation | login_screen(로그인), trip_list_screen(여행방 목록), create_trip_screen(여행방 생성), join_screen(초대 코드 입력), trip_chat_sheet(채팅 오버레이), conditions_screen(조건 확인·수정), recommendation_screen(여행지 추천), destination_vote_screen(투표·확정), itinerary_screen(공동 일정표), app_theme | Firestore 문서 구조, Claude 프롬프트, 카카오 API 호출 방식 |
+| 표현 / Presentation | login_screen(로그인), trip_list_screen(여행방 목록), create_trip_screen(여행방 생성), join_screen(초대 코드 입력), trip_chat_sheet(채팅 오버레이), conditions_screen(조건 확인·수정), recommendation_screen(여행지 추천), destination_vote_screen(투표·확정), itinerary_screen(공동 일정표), app_theme | Supabase 테이블 구조, AI 프롬프트, Google API 호출 방식 |
 | 로직 / Logic | Riverpod provider(AuthState, TripState, ChatMessages, TripConditions, Recommendations, VoteState, Itinerary), invite_code_service(코드 생성·검증), vote_engine(1인 1표, 과반 판정), itinerary_controller(일차별 장소 추가·순서 변경) | 화면 구성(위젯), 저장소 종류, 외부 API SDK |
-| 데이터 / Data | trip_repository, chat_repository, condition_repository, vote_repository, itinerary_repository(Firestore), kakao_place_service(카카오 로컬 API), ai_functions_client(Cloud Functions 호출), functions/extractConditions, functions/recommendDestinations(Claude API, 키는 서버에만 보관) | 투표 판정 규칙, 화면 상태, 위젯 |
+| 데이터 / Data | trip_repository, chat_repository, condition_repository, vote_repository, itinerary_repository(Supabase), google_place_service(Edge Function을 거쳐 Google Places API 호출), ai_functions_client(Edge Functions 호출), functions/analyze-chat(OpenAI API), functions/recommend-destinations(Claude API), functions/_shared/ai(제공자 선택·응답 검증, 키는 서버에만 보관) | 투표 판정 규칙, 화면 상태, 위젯 |
 
 ## 2. 이슈 / Issues
 
@@ -41,7 +43,7 @@ graph TD
 | #6 | 조건 확인·수정 화면 | frontend | 김현우 | 조건별 출처가 표시되고 AI가 추측한 항목이 구분되며, 수정한 값이 양쪽 기기에 반영된다 |
 | #7 | 조건 기반 여행지 추천 | backend | 박영욱 | 저장된 조건으로 추천을 요청하면 국내 여행지 3곳과 각 추천 이유가 표시된다 |
 | #8 | 여행지 투표와 확정 | frontend | 김현우 | 멤버당 1표만 반영되고, 과반 득표 여행지를 방장이 확정하면 여행방에 표시된다 |
-| #9 | 카카오 장소 검색 | data | 김현우 | "성산일출봉"을 검색하면 장소명, 주소, 좌표가 목록에 표시된다 |
+| #9 | 구글 장소 검색 | data | 김현우 | "성산일출봉"을 검색하면 장소명, 주소, 좌표가 목록에 표시된다 |
 | #10 | 공동 일정표 실시간 동기화 | data | 박영욱 | 기기 2대에서 장소 추가·순서 변경이 5초 이내에 양쪽에 동일하게 반영된다 |
 | #11 | 세션 복구와 예외 처리 | data | 박영욱 | 오프라인에서도 마지막 일정을 볼 수 있고, 네트워크·AI 오류 시 안내 메시지가 뜬다 |
 | #12 | APK 빌드와 README | docs | 김현우 | 릴리스 APK를 새 기기에 설치하면 #2~#10이 동작하고, README에 아키텍처와 시연 GIF가 있다 |
