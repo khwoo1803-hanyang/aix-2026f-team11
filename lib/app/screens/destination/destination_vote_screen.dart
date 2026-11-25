@@ -13,7 +13,10 @@ class DestinationVoteScreen extends ConsumerWidget {
 
   final String roomId;
 
-  Future<void> _run(BuildContext context, Future<void> Function() action) async {
+  Future<void> _run(
+    BuildContext context,
+    Future<void> Function() action,
+  ) async {
     try {
       await action();
     } on DestinationException catch (error) {
@@ -31,7 +34,9 @@ class DestinationVoteScreen extends ConsumerWidget {
     if (input == null || !context.mounted) return;
     await _run(
       context,
-      () => ref.read(destinationServiceProvider).addDestination(
+      () => ref
+          .read(destinationServiceProvider)
+          .addDestination(
             roomId: roomId,
             name: input.name,
             reason: input.reason,
@@ -249,7 +254,10 @@ class _AddDestinationDialogState extends State<_AddDestinationDialog> {
             controller: _name,
             autofocus: true,
             maxLength: 40,
-            decoration: const InputDecoration(labelText: '여행지', hintText: '예: 강릉'),
+            decoration: const InputDecoration(
+              labelText: '여행지',
+              hintText: '예: 강릉',
+            ),
           ),
           TextField(
             key: const Key('destination-reason'),
@@ -271,7 +279,8 @@ class _AddDestinationDialogState extends State<_AddDestinationDialog> {
           onPressed: () {
             final name = _name.text.trim();
             if (name.isEmpty) return;
-            Navigator.of(context).pop((name: name, reason: _reason.text.trim()));
+            Navigator.of(context)
+                .pop((name: name, reason: _reason.text.trim()));
           },
           child: const Text('올리기'),
         ),

@@ -57,10 +57,10 @@ class DestinationService {
     required VoteChoice choice,
   }) async {
     try {
-      await _client.from('destination_votes').upsert(
-        {'destination_id': destinationId, 'choice': choice.value},
-        onConflict: 'destination_id,user_id',
-      );
+      await _client.from('destination_votes').upsert({
+        'destination_id': destinationId,
+        'choice': choice.value,
+      }, onConflict: 'destination_id,user_id');
     } on PostgrestException catch (error) {
       throw _describe(error);
     }

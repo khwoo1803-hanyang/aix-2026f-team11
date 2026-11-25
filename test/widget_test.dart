@@ -25,8 +25,7 @@ class _FakeAuthService implements AuthService {
     required String email,
     required String password,
     required String nickname,
-  }) async =>
-      SignUpResult.needsEmailConfirmation;
+  }) async => SignUpResult.needsEmailConfirmation;
 
   @override
   Future<void> signOut() async {}
@@ -51,9 +50,7 @@ void main() {
   testWidgets('로그인하지 않았으면 로그인 화면을 보여준다', (tester) async {
     await tester.pumpWidget(
       ProviderScope(
-        overrides: [
-          authServiceProvider.overrideWithValue(_FakeAuthService()),
-        ],
+        overrides: [authServiceProvider.overrideWithValue(_FakeAuthService())],
         child: const TravelPlannerApp(isSupabaseConfigured: true),
       ),
     );
@@ -100,9 +97,6 @@ void main() {
     await tester.tap(find.widgetWithText(FilledButton, '가입하기'));
     await tester.pumpAndSettle();
 
-    expect(
-      find.text('가입 확인 메일을 보냈습니다. 링크를 누른 뒤 로그인해 주세요.'),
-      findsOneWidget,
-    );
+    expect(find.text('가입 확인 메일을 보냈습니다. 링크를 누른 뒤 로그인해 주세요.'), findsOneWidget);
   });
 }

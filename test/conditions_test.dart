@@ -37,19 +37,24 @@ class _FakeConditionService implements ConditionService {
   }
 
   @override
-  Future<void> clear({required String roomId, required ConditionField field}) async {
+  Future<void> clear({
+    required String roomId,
+    required ConditionField field,
+  }) async {
     cleared.add(field);
   }
 
   @override
-  Stream<List<TripCondition>> watchConditions(String roomId) => const Stream.empty();
+  Stream<List<TripCondition>> watchConditions(String roomId) =>
+      const Stream.empty();
 }
 
 Widget _screen(_FakeConditionService service, List<TripCondition> conditions) {
   return ProviderScope(
     overrides: [
       conditionServiceProvider.overrideWithValue(service),
-      roomConditionsProvider('r').overrideWith((ref) => Stream.value(conditions)),
+      roomConditionsProvider('r')
+          .overrideWith((ref) => Stream.value(conditions)),
       roomMessagesProvider('r').overrideWith(
         (ref) => Stream.value([
           ChatMessage(
@@ -74,10 +79,7 @@ Widget _screen(_FakeConditionService service, List<TripCondition> conditions) {
 
 void main() {
   test('알 수 없는 항목은 건너뛴다', () {
-    expect(
-      TripCondition.fromJson({'field': 'weather', 'value': '맑음'}),
-      isNull,
-    );
+    expect(TripCondition.fromJson({'field': 'weather', 'value': '맑음'}), isNull);
     final condition = TripCondition.fromJson({
       'field': 'budget',
       'value': '1인 30만 원',
@@ -94,11 +96,26 @@ void main() {
   testWidgets('조건을 출처, AI 추측, 직접 입력 표시와 함께 보여준다', (tester) async {
     tester.view.physicalSize = const Size(1080, 2400);
     addTearDown(tester.view.reset);
-    await tester.pumpWidget(_screen(_FakeConditionService(), const [
-      TripCondition(field: ConditionField.dates, value: '8월 둘째 주, 2박 3일', sourceMessageId: 7),
-      TripCondition(field: ConditionField.transport, value: '대중교통', inferred: true),
-      TripCondition(field: ConditionField.budget, value: '1인 25만 원', manual: true, updatedBy: 'm2'),
-    ]));
+    await tester.pumpWidget(
+      _screen(_FakeConditionService(), const [
+        TripCondition(
+          field: ConditionField.dates,
+          value: '8월 둘째 주, 2박 3일',
+          sourceMessageId: 7,
+        ),
+        TripCondition(
+          field: ConditionField.transport,
+          value: '대중교통',
+          inferred: true,
+        ),
+        TripCondition(
+          field: ConditionField.budget,
+          value: '1인 25만 원',
+          manual: true,
+          updatedBy: 'm2',
+        ),
+      ]),
+    );
     await tester.pumpAndSettle();
 
     expect(find.text('8월 둘째 주, 2박 3일'), findsOneWidget);
@@ -142,7 +159,10 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('비우기'), findsNothing);
 
-    await tester.enterText(find.byKey(const Key('condition-value')), '  1인 30만 원 ');
+    await tester.enterText(
+      find.byKey(const Key('condition-value')),
+      '  1인 30만 원 ',
+    );
     await tester.tap(find.text('저장'));
     await tester.pumpAndSettle();
 
@@ -151,9 +171,15 @@ void main() {
 
   testWidgets('빈 값은 저장하지 않고, 비우기로 항목을 지운다', (tester) async {
     final service = _FakeConditionService();
-    await tester.pumpWidget(_screen(service, const [
-      TripCondition(field: ConditionField.people, value: '4명', sourceMessageId: 7),
-    ]));
+    await tester.pumpWidget(
+      _screen(service, const [
+        TripCondition(
+          field: ConditionField.people,
+          value: '4명',
+          sourceMessageId: 7,
+        ),
+      ]),
+    );
     await tester.pumpAndSettle();
 
     await tester.tap(find.text('4명'));

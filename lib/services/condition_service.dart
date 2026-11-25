@@ -65,7 +65,10 @@ class ConditionService {
   }
 
   /// 항목을 비운다. 비운 항목은 다음 AI 정리 때 다시 채워질 수 있다.
-  Future<void> clear({required String roomId, required ConditionField field}) async {
+  Future<void> clear({
+    required String roomId,
+    required ConditionField field,
+  }) async {
     try {
       await _client
           .from('trip_conditions')

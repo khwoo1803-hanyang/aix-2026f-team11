@@ -17,7 +17,9 @@ final roomProvider = StreamProvider.family<TravelRoom, String>((ref, roomId) {
   return ref.watch(roomServiceProvider).watchRoom(roomId);
 });
 
-final roomMembersProvider =
-    FutureProvider.family<List<RoomMember>, String>((ref, roomId) {
+final roomMembersProvider = FutureProvider.family<List<RoomMember>, String>((
+  ref,
+  roomId,
+) {
   return ref.watch(roomServiceProvider).fetchMembers(roomId);
 });

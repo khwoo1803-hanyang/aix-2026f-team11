@@ -9,9 +9,10 @@ import '../../../providers/room_provider.dart';
 import '../chat/chat_sheet.dart';
 import '../conditions/conditions_screen.dart';
 import '../destination/destination_vote_screen.dart';
+import '../itinerary/itinerary_screen.dart';
 import '../recommendation/recommendation_screen.dart';
 
-/// 여행방 대시보드. 초대 코드, 여행 조건, AI 추천, 여행지 투표, 멤버 목록을 보여준다.
+/// 여행방 대시보드. 초대 코드, 여행 조건, AI 추천, 여행지 투표, 장소·일정, 멤버 목록을 보여준다.
 class RoomScreen extends ConsumerWidget {
   const RoomScreen({super.key, required this.roomId});
 
@@ -100,11 +101,26 @@ class RoomScreen extends ConsumerWidget {
               child: ListTile(
                 leading: const Icon(Icons.how_to_vote_outlined),
                 title: const Text('여행지 투표'),
-                subtitle: Text(_voteSummary(ref, room.value?.confirmedDestinationId)),
+                subtitle: Text(
+                  _voteSummary(ref, room.value?.confirmedDestinationId),
+                ),
                 trailing: const Icon(Icons.chevron_right),
                 onTap: () => Navigator.of(context).push(
                   MaterialPageRoute<void>(
                     builder: (_) => DestinationVoteScreen(roomId: roomId),
+                  ),
+                ),
+              ),
+            ),
+            Card(
+              child: ListTile(
+                leading: const Icon(Icons.calendar_month_outlined),
+                title: const Text('장소·일정'),
+                subtitle: const Text('장소 후보함과 일차별 일정표'),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () => Navigator.of(context).push(
+                  MaterialPageRoute<void>(
+                    builder: (_) => ItineraryScreen(roomId: roomId),
                   ),
                 ),
               ),

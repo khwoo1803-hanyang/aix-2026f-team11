@@ -17,7 +17,9 @@ class TravelPlannerApp extends StatelessWidget {
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.teal),
       ),
-      home: isSupabaseConfigured ? const AuthGate() : const SetupRequiredScreen(),
+      home: isSupabaseConfigured
+          ? const AuthGate()
+          : const SetupRequiredScreen(),
     );
   }
 }
