@@ -1,8 +1,8 @@
 # 공동 여행 계획 앱 프로젝트 컨텍스트
 
 > VS Code / Codex 개발 참고 문서  
-> 버전: 1.3 (2026-11-18 여행지 투표, 조건 추출·수정 반영, 지도·일정 보류)  
-> 프로젝트 상태: 회원가입·로그인, 여행방, 실시간 채팅, 여행지 투표 완료(main 머지). 조건 추출·수정은 PR #9 리뷰 대기(AI는 크레딧 충전 후 확인). AI 추천 구현 전, 지도·일정 보류
+> 버전: 1.4 (2026-11-25 AI 여행지 추천, 장소 후보함·공동 일정표 반영, Google 장소 검색 보류)  
+> 프로젝트 상태: 회원가입·로그인, 여행방, 실시간 채팅, 여행지 투표, 조건 추출·수정, AI 여행지 추천, 장소 후보함·공동 일정표 main 머지. 추천·일정 DB는 Supabase 적용 전, AI는 크레딧 충전 후 확인. Google 장소 검색·지도 보류
 
 ---
 
@@ -517,14 +517,14 @@ Codex가 이 프로젝트를 개발할 때 다음 규칙을 지킨다.
 
 # 11. 현재 개발 상태 및 다음 작업
 
-## 현재 개발 상태 (2026-11-18)
+## 현재 개발 상태 (2026-11-25)
 
 ### 확정한 기술 구성
 
 - 앱: Flutter 3.47.9 / Dart 3.13.7, 상태 관리 Riverpod
 - 백엔드: Supabase (`supabase_flutter` 2.18.3). Firebase 계획은 폐기했다.
 - Supabase 프로젝트: 김현우 계정의 프로젝트 하나를 팀 공용으로 쓴다. 박영욱은 조직(Team)에 초대받아 같은 프로젝트를 쓴다.
-- AI: 채팅 조건 추출은 OpenAI API, 여행지 추천은 Claude API. 키는 Supabase Edge Functions의 Secrets에 등록한다 (`OPENAI_API_KEY` 등록 완료, `ANTHROPIC_API_KEY` 미등록).
+- AI: 채팅 조건 추출은 OpenAI API(`gpt-4.1-mini`), 여행지 추천은 Claude API(`claude-opus-5-5`). 키는 Supabase Edge Functions의 Secrets에 등록한다 (`OPENAI_API_KEY` 등록 완료·크레딧 없음, `ANTHROPIC_API_KEY` 미등록).
 - 지도: Google Maps Platform. 결제 계정과 카드 등록이 필요하고, 한국 내 자동차·도보 길찾기는 제한될 수 있다.
 - 채팅 위치: 모든 여행방 화면 오른쪽 아래 채팅 버튼을 누르면 아래에서 올라오는 채팅창
 - 설정 파일: `env.json` (`env.example.json`을 복사해 Supabase URL과 publishable 키를 넣는다. Git에서 제외)
@@ -533,52 +533,74 @@ Codex가 이 프로젝트를 개발할 때 다음 규칙을 지킨다.
 
 | PR | 내용 | 상태 |
 |---|---|---|
-| #4 | Flutter 뼈대, Supabase 연결 설정 | 머지 완료 |
-| #5 | 회원가입·로그인, 여행방 생성, 초대 코드 입장 | 머지 완료 |
-| #6 | 여행방 실시간 채팅 | 머지 완료 |
+| #4~#6 | Flutter 뼈대, 로그인·여행방, 실시간 채팅 | 머지 완료 |
 | #8 | 여행지 후보 등록, 투표, 방장 확정 | 머지 완료 |
-| #9 | 채팅 조건 추출(AI), 조건 확인·수정 | 리뷰 대기 |
+| #9 | 채팅 조건 추출(AI), 조건 확인·수정 | 머지 완료 (2026-11-25) |
+| #11 → #12 | AI 여행지 추천 | 머지 완료 (2026-11-25) |
+| #13 | 장소 후보함, 공동 일정표 | 머지 완료 (2026-11-25) |
 | #1 | 중복 활동지 정리 | 충돌, 처리 방법 결정 필요 |
+
+- 11-18에 main에 PR 없이 올라온 `travel_conditions` 구현(커밋 `80777fb`)은 `trip_conditions`와 기능이 겹쳐 PR #9에서 제거했다.
+- #11은 대상 브랜치가 #9 브랜치인 채로 머지돼 main에 들어가지 않아서 #12로 다시 옮겼다. **브랜치 위에 쌓은 PR은 머지 전에 대상이 `main`인지 확인한다.**
+- 앞으로 main에는 직접 올리지 않고 브랜치 → PR → 리뷰 → 머지 순서로 올린다.
 
 ### 구현 완료
 
-**DB** (Supabase에 모두 적용, 파일은 `supabase/migrations/`)
+**DB** (파일은 `supabase/migrations/`, 파일 이름 순서대로 실행)
 
-| 파일 | 내용 |
-|---|---|
-| `20261118000000_profiles_rooms_members.sql` | `profiles`, `travel_rooms`, `room_members`, `create_room`, `join_room_by_code` |
-| `20261118010000_messages.sql` | `messages` (실시간 전달) |
-| `20261118020000_destinations.sql` | `destinations`, `destination_votes`, `confirm_destination` |
-| `20261118030000_trip_conditions.sql` | `trip_conditions`, `ai_requests` (PR #9) |
-| `20261118040000_trip_conditions_manual.sql` | 직접 고친 조건 표시 `manual` (PR #9) |
+| 파일 | 내용 | Supabase 적용 |
+|---|---|---|
+| `20261118000000_profiles_rooms_members.sql` | `profiles`, `travel_rooms`, `room_members`, `create_room`, `join_room_by_code` | 완료 |
+| `20261118010000_messages.sql` | `messages` (실시간 전달) | 완료 |
+| `20261118020000_destinations.sql` | `destinations`, `destination_votes`, `confirm_destination` | 완료 |
+| `20261118030000_trip_conditions.sql` | `trip_conditions`, `ai_requests` | 완료 |
+| `20261118040000_trip_conditions_manual.sql` | 직접 고친 조건 표시 `manual` | 완료 |
+| `20261125000000_destination_recommendations.sql` | `destination_recommendations` (AI 추천 결과) | **미적용** |
+| `20261125010000_places_itinerary.sql` | `places`, `place_votes`, `itinerary_days`, `itinerary_items`, `reorder_itinerary` | **미적용** |
 
-- RLS: 모든 여행방 데이터는 멤버만 조회·작성, 메시지·후보·투표는 본인 이름으로만 작성, 여행지 확정은 방장만
-- 설계 변경: 5.1의 `condition_proposals`/`travel_conditions` 두 테이블 대신 `trip_conditions` 하나로 구현했다. AI가 정리한 값은 출처 메시지와 AI 추측 여부를 함께 저장한다. 멤버가 직접 고친 값(`manual`)은 AI가 덮어쓰지 않는다.
+- RLS: 모든 여행방 데이터는 멤버만 조회·작성. 메시지·후보·투표·장소·좋아요는 본인 이름으로만 작성. 여행지 확정은 방장만, 장소 수정·삭제는 올린 사람만.
+- 설계 변경: 5.1의 `condition_proposals`/`travel_conditions` 두 테이블 대신 `trip_conditions` 하나로 구현했다. AI가 정리한 값은 출처 메시지와 AI 추측 여부를 함께 저장하고, 멤버가 직접 고친 값(`manual`)은 AI가 덮어쓰지 않는다.
+- 장소 투표는 찬성·반대 대신 '좋아요'(1인 1회)로 단순화했다. 일정 순서는 `reorder_itinerary` 함수로만 바꾸고, 그사이 다른 멤버가 항목을 넣거나 뺐으면 거절한다.
 
-**Edge Function** (`supabase/functions/extract-conditions/index.ts`, 배포 완료)
-- 최근 채팅 80개를 OpenAI(`gpt-4.1-mini`)로 읽어 인원·날짜·출발지·이동수단·예산·활동을 추출
-- 같은 여행방에서 10초에 1번, 하루 30번으로 제한
-- 실패하면 아무것도 저장하지 않고 실패 이유(`reason`)를 돌려준다
-- 대시보드 편집기에 붙여 넣어 배포하므로 파일 하나로 둔다
+**Edge Function** (대시보드 편집기에 붙여 넣어 배포하므로 함수 하나는 파일 하나)
 
-**앱**
+| 함수 | 내용 | 배포 |
+|---|---|---|
+| `extract-conditions` | 최근 채팅 80개를 OpenAI로 읽어 인원·날짜·출발지·이동수단·예산·활동 추출. 여행방당 10초에 1번, 하루 30번 | 완료 |
+| `recommend-destinations` | 조건과 후보·투표 현황을 Claude로 보내 국내 여행지 3곳, 추천 이유, 조건별 일치 여부, 확인할 점을 저장. 여행방당 30초에 1번, 하루 10번 | **미배포** |
+
+- 두 함수 모두 실패하면 아무것도 저장하지 않고 실패 이유(`reason`: `ai_key_missing`, `ai_no_credit`, `ai_timeout` 등)를 돌려준다.
+
+**앱** (여행방 화면 메뉴 순서)
 - 로그인 / 회원가입, 내 여행방 목록, 여행방 만들기, 초대 코드 입장
-- 여행방 화면: 초대 코드 표시·복사, 여행 조건, 여행지 투표, 멤버 목록
-- 실시간 채팅창
+- 여행방 화면: 초대 코드 표시·복사, 멤버 목록
+- 여행 조건: 채팅에서 AI로 정리, 출처 메시지와 "AI 추측"·"직접 입력" 표시, 직접 입력·수정·비우기
+- AI 여행지 추천: 최근 추천 3곳과 이유·조건 일치 표시, "투표 후보로 올리기"
 - 여행지 투표: 1인당 후보 2개, 찬성·보통·반대, 찬성이 과반이면 방장이 확정
-- 여행 조건: 출처 메시지와 "AI 추측"·"직접 입력" 표시, 직접 입력·수정·비우기 (PR #9)
+- 장소·일정: 장소 후보함(올리기, 좋아요 순 정렬, 일정에 넣기), 일차별 일정표(일차 추가·삭제, 끌어서 순서 바꾸기, 방문 시간·메모)
+- 실시간 채팅창
 
 ### 확인 결과
 
-- `flutter analyze` 문제 없음, `flutter test` 22개 통과, 웹 빌드와 Android 디버그 빌드 성공
-- 실제 Supabase에서 테스트 계정으로 확인
+- `flutter analyze` 문제 없음, `flutter test` 41개 통과, 웹 빌드와 Android 디버그 빌드 성공
+- 실제 Supabase에서 테스트 계정으로 확인 (11-18까지 적용한 기능)
   - 외부인은 여행방, 멤버, 메시지, 후보, 투표, 조건을 보거나 쓸 수 없음
   - 채팅, 투표, 확정, 조건 수정이 다른 멤버에게 약 0.4초 만에 실시간 도착
-  - 후보 3개째와 중복 이름 차단, 과반이 아니거나 방장이 아니면 확정 거부
+- 11-25에 추가한 DB는 Supabase와 비슷한 로컬 DB(PGlite)에 migration 7개를 차례로 적용하고 29개 시나리오를 확인했다 (외부인 차단, 남의 장소·좋아요 삭제 차단, 다른 방 장소 넣기 차단, 순서 직접 수정 차단, 삭제 시 일정 함께 삭제, 순서 충돌 거절).
+- `recommend-destinations`는 `@anthropic-ai/sdk@1.8.0` 타입으로 `tsc --strict` 검사를 통과했다.
 - **확인 안 됨**
-  - AI 조건 추출의 실제 결과: OpenAI 계정 크레딧이 없어 `ai_no_credit`로 거절됨
-  - 앱 화면을 직접 눌러 보는 확인, 기기 2대 동시 확인
+  - AI 조건 추출·AI 추천의 실제 결과 (OpenAI 크레딧 없음, Claude 키 미등록)
+  - 추천·장소·일정의 실제 Supabase 동작 (migration 미적용)
+  - 기기 2대 동시 확인 (활동지 #10 완료 조건: 5초 이내 반영)
   - Android 에뮬레이터 실행: 켜졌다가 바로 꺼져서 원인 확인 필요 (크롬 실행은 정상)
+
+### 데모 실행
+
+```
+flutter run -d chrome --web-port 5180 --dart-define-from-file=env.json
+```
+
+브라우저에서 http://localhost:5180 을 연다. 실시간 반영은 시크릿 창에서 다른 계정으로 같은 여행방에 들어가 확인한다.
 
 ### PC별 개발 환경
 
@@ -591,30 +613,29 @@ Codex가 이 프로젝트를 개발할 때 다음 규칙을 지킨다.
 
 iOS 빌드는 macOS와 Xcode가 필요하다. secret 키와 AI API 키는 앱에 넣지 않는다.
 
+## 배포 전 할 일 (Supabase 대시보드)
+
+1. SQL Editor에서 아직 적용하지 않은 migration 두 개를 순서대로 실행한다: `20261125000000_destination_recommendations.sql` → `20261125010000_places_itinerary.sql`
+2. 11-18에 main에 올라왔던 `travel_conditions` 테이블이 Supabase에 만들어졌는지 Table Editor에서 확인한다. 있으면 지운다: `drop table public.travel_conditions; drop function public.bump_travel_conditions_revision();`
+3. Edge Functions에서 `recommend-destinations`를 새로 만들고 `supabase/functions/recommend-destinations/index.ts`를 붙여 넣는다.
+4. https://console.anthropic.com 에서 크레딧을 충전하고 API 키를 만들어 Secrets에 `ANTHROPIC_API_KEY`로 등록한다. 모델을 바꾸려면 `ANTHROPIC_MODEL`을 추가한다.
+5. 시범 운행 2~3일 전에 OpenAI 크레딧을 충전한다 (https://platform.openai.com/settings/organization/billing). 조건 추출 결과와 "직접 고친 값을 AI가 덮어쓰지 않는지"를 확인한다.
+
 ## 보류한 작업
 
-### 지도와 공동 일정 (활동지 #9, #10) — 보류 (2026-11-18 결정)
+### Google 장소 검색과 지도 (활동지 #9) — 보류
 
-나중에 이어서 할 수 있도록 필요한 준비와 만들 내용을 적어 둔다.
+공동 일정표(#10)는 장소를 직접 입력하는 방식으로 먼저 만들었다. `places`에 `google_place_id`, `lat`, `lng` 칸을 미리 만들어 두었으니 검색을 붙이면 채운다.
 
 **시작 전에 준비할 것**
 1. Google Cloud Console(https://console.cloud.google.com)에서 프로젝트를 만들고 결제 계정(카드)을 등록한다. 무료 사용량 안에서는 요금이 나가지 않는다.
 2. **Places API (New)** 와 **Maps SDK for Android / iOS**, **Maps JavaScript API**(웹)를 사용 설정한다.
 3. API 키를 만들고 사용할 API와 앱(패키지 이름)으로 제한한다. 장소 검색 키는 Edge Function Secrets(`GOOGLE_MAPS_API_KEY`)에 두고, 지도 표시 키만 앱 설정에 넣는다.
 
-**만들 내용 (제안)**
-- DB migration: `places`(장소 후보, Google place_id·이름·주소·좌표·카테고리), `place_votes`, `itinerary_days`, `itinerary_items`(일차, 순서, 시간, 장소). 모두 멤버만 접근하는 RLS와 실시간 전달.
+**만들 내용**
 - Edge Function `search-places`: 확정된 여행지 근처 장소를 Places API로 검색한다. 키를 앱에 노출하지 않는다.
-- 앱: 장소 검색·후보함·장소 투표 화면, 일차별 일정표와 순서 바꾸기, 지도 표시(`google_maps_flutter`).
-- 완료 조건(활동지 7주차): 장소를 후보함에 추가하고 투표한 뒤 일정에 넣으면 다른 멤버 기기에도 실시간으로 보인다.
-
-**이어서 시작할 때:** Claude Code에서 "travel_app_context.md 11장 보류한 작업 보고 지도와 일정 기능 이어서 해줘"라고 요청한다.
-
-### AI 조건 추출 실제 확인 — 크레딧 충전 후
-
-- 코드와 배포는 끝났고, OpenAI 크레딧만 충전하면 바로 작동한다 (https://platform.openai.com/settings/organization/billing).
-- 시범 운행 2~3일 전에 충전하고, 조건 추출 결과와 "직접 고친 값을 AI가 덮어쓰지 않는지"를 확인한다.
-- 모델을 바꾸려면 Secrets에 `OPENAI_MODEL`을 추가한다.
+- 장소 올리기 화면에 검색 결과 고르기를 추가하고, 일정표에 지도 표시(`google_maps_flutter`)를 붙인다.
+- 완료 조건(활동지 7주차): "성산일출봉"을 검색하면 장소명, 주소, 좌표가 목록에 표시된다.
 
 ### 결정이 필요한 항목
 
@@ -624,10 +645,11 @@ iOS 빌드는 macOS와 Xcode가 필요하다. secret 키와 AI API 키는 앱에
 
 ## 다음 작업 순서
 
-1. PR #9 리뷰와 머지 (박영욱)
-2. AI 여행지 추천 (활동지 #7): Claude API 크레딧 충전과 `ANTHROPIC_API_KEY` 등록 필요
+1. 박영욱의 UI 작업을 GitHub에 올리고, 지금 main과 충돌하는지 확인한 뒤 PR로 합친다.
+2. 위 "배포 전 할 일" 1~3을 하고 기기 2대로 추천·장소·일정을 확인한다.
 3. 시범 운행 2~3일 전 OpenAI·Claude 크레딧 충전 후 AI 기능 실제 확인
-4. 지도와 공동 일정 (보류, 위 준비 사항 참고)
+4. Google 장소 검색과 지도 (#9, 결제 계정 준비 후)
+5. 13주차 실행 패키지: 세션 복구와 예외 처리(#11), 릴리스 APK와 README(#12)
 
 ---
 
