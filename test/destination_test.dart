@@ -181,6 +181,6 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('확정된 여행지: 경주'), findsOneWidget);
-    expect(find.text('확정'), findsOneWidget);
+    expect(find.widgetWithText(Chip, '확정'), findsOneWidget);
   });
 }

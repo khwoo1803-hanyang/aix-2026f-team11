@@ -6,6 +6,7 @@ import '../../../providers/chat_provider.dart';
 import '../../../providers/condition_provider.dart';
 import '../../../providers/room_provider.dart';
 import '../../../services/condition_service.dart';
+import '../../travel_theme.dart';
 import '../chat/chat_sheet.dart';
 
 /// 여행 조건 확인·수정 화면 (활동지 #5, #6).
@@ -23,7 +24,8 @@ class _ConditionsScreenState extends ConsumerState<ConditionsScreen> {
   bool _extracting = false;
 
   void _showMessage(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
+    ScaffoldMessenger.of(context)
+        .showSnackBar(SnackBar(content: Text(message)));
   }
 
   Future<void> _extract() async {
@@ -33,11 +35,13 @@ class _ConditionsScreenState extends ConsumerState<ConditionsScreen> {
       final result = await ref
           .read(conditionServiceProvider)
           .extractFromChat(widget.roomId);
-      final keptNote = result.kept > 0 ? ' 직접 고친 ${result.kept}개는 그대로 뒀어요.' : '';
+      final keptNote = result.kept > 0
+          ? ' 직접 고친 ${result.kept}개는 그대로 뒀어요.'
+          : '';
       message = result.found == 0
           ? result.kept > 0
-              ? '새로 바뀐 조건이 없어요.$keptNote'
-              : '대화에서 조건을 찾지 못했어요. 채팅에 날짜, 예산 같은 조건을 적거나 직접 입력해 보세요.'
+                ? '새로 바뀐 조건이 없어요.$keptNote'
+                : '대화에서 조건을 찾지 못했어요. 채팅에 날짜, 예산 같은 조건을 적거나 직접 입력해 보세요.'
           : '조건 ${result.found}개를 정리했어요.$keptNote';
     } on ConditionException catch (error) {
       message = error.message;
@@ -52,7 +56,8 @@ class _ConditionsScreenState extends ConsumerState<ConditionsScreen> {
   Future<void> _edit(ConditionField field, TripCondition? current) async {
     final action = await showDialog<_EditAction>(
       context: context,
-      builder: (_) => _EditConditionDialog(field: field, initial: current?.value),
+      builder: (_) =>
+          _EditConditionDialog(field: field, initial: current?.value),
     );
     if (action == null || !mounted) return;
     final service = ref.read(conditionServiceProvider);
@@ -73,12 +78,15 @@ class _ConditionsScreenState extends ConsumerState<ConditionsScreen> {
   @override
   Widget build(BuildContext context) {
     final conditions = ref.watch(roomConditionsProvider(widget.roomId));
-    final messages = ref.watch(roomMessagesProvider(widget.roomId)).value ?? const [];
-    final members = ref.watch(roomMembersProvider(widget.roomId)).value ?? const [];
+    final messages =
+        ref.watch(roomMessagesProvider(widget.roomId)).value ?? const [];
+    final members =
+        ref.watch(roomMembersProvider(widget.roomId)).value ?? const [];
 
     final nicknames = {for (final m in members) m.userId: m.nickname};
     final sources = {
-      for (final m in messages) m.id: '${nicknames[m.userId] ?? '알 수 없음'}: ${m.content}',
+      for (final m in messages)
+        m.id: '${nicknames[m.userId] ?? '알 수 없음'}: ${m.content}',
     };
 
     return Scaffold(
@@ -89,33 +97,39 @@ class _ConditionsScreenState extends ConsumerState<ConditionsScreen> {
         error: (_, _) => const Center(child: Text('조건을 불러오지 못했습니다.')),
         data: (list) {
           final byField = {for (final c in list) c.field: c};
-          return ListView(
-            padding: const EdgeInsets.fromLTRB(16, 16, 16, 88),
-            children: [
-              const Text(
-                '채팅 내용을 AI가 읽고 여행 조건을 정리해요. 항목을 누르면 직접 고칠 수 있고, 직접 고친 값은 AI가 바꾸지 않아요.',
-              ),
-              const SizedBox(height: 12),
-              FilledButton.icon(
-                onPressed: _extracting ? null : _extract,
-                icon: _extracting
-                    ? const SizedBox.square(
-                        dimension: 18,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                    : const Icon(Icons.auto_awesome),
-                label: Text(_extracting ? '정리하는 중...' : '채팅에서 조건 정리'),
-              ),
-              const SizedBox(height: 12),
-              for (final field in ConditionField.values)
-                _ConditionTile(
-                  field: field,
-                  condition: byField[field],
-                  source: sources[byField[field]?.sourceMessageId],
-                  editor: nicknames[byField[field]?.updatedBy],
-                  onTap: () => _edit(field, byField[field]),
+          return TravelWidth(
+            child: ListView(
+              padding: const EdgeInsets.fromLTRB(22, 18, 22, 88),
+              children: [
+                const TravelHeading(
+                  '어떤 여행을 계획하나요?',
+                  description: '채팅에서 여행 조건을 정리하거나 항목을 눌러 직접 수정할 수 있어요.',
                 ),
-            ],
+                const SizedBox(height: 12),
+                FilledButton.icon(
+                  onPressed: _extracting ? null : _extract,
+                  icon: _extracting
+                      ? const SizedBox.square(
+                          dimension: 18,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Icon(Icons.auto_awesome),
+                  label: Text(_extracting ? '정리하는 중...' : '채팅에서 조건 정리'),
+                ),
+                const SizedBox(height: 12),
+                for (final field in ConditionField.values)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 6),
+                    child: _ConditionTile(
+                      field: field,
+                      condition: byField[field],
+                      source: sources[byField[field]?.sourceMessageId],
+                      editor: nicknames[byField[field]?.updatedBy],
+                      onTap: () => _edit(field, byField[field]),
+                    ),
+                  ),
+              ],
+            ),
           );
         },
       ),

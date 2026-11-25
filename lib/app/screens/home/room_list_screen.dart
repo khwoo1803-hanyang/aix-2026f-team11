@@ -1,36 +1,28 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../models/travel_room.dart';
 import '../../../providers/auth_provider.dart';
 import '../../../providers/room_provider.dart';
 import '../../../services/room_service.dart';
+import '../../travel_theme.dart';
 import '../room/room_screen.dart';
+import 'room_onboarding_screen.dart';
 
 class RoomListScreen extends ConsumerWidget {
   const RoomListScreen({super.key});
 
   void _openRoom(BuildContext context, String roomId) {
-    Navigator.of(context).push(
-      MaterialPageRoute<void>(builder: (_) => RoomScreen(roomId: roomId)),
-    );
+    Navigator.of(
+      context,
+    ).push(MaterialPageRoute<void>(builder: (_) => RoomScreen(roomId: roomId)));
   }
 
-  Future<void> _createRoom(BuildContext context, WidgetRef ref) async {
-    final name = await _askText(
-      context,
-      title: '여행방 만들기',
-      label: '여행방 이름',
-      hint: '예: 제주 2박 3일',
-      confirm: '만들기',
+  Future<void> _createRoom(BuildContext context) async {
+    final room = await Navigator.of(context).push<TravelRoom>(
+      MaterialPageRoute(builder: (_) => const RoomOnboardingScreen()),
     );
-    if (name == null || !context.mounted) return;
-    try {
-      final room = await ref.read(roomServiceProvider).createRoom(name: name);
-      ref.invalidate(myRoomsProvider);
-      if (context.mounted) _openRoom(context, room.id);
-    } catch (_) {
-      if (context.mounted) _showMessage(context, '여행방을 만들지 못했습니다.');
-    }
+    if (room != null && context.mounted) _openRoom(context, room.id);
   }
 
   Future<void> _joinRoom(BuildContext context, WidgetRef ref) async {
@@ -63,13 +55,8 @@ class RoomListScreen extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('내 여행방'),
+        title: const Text('여행 계획'),
         actions: [
-          IconButton(
-            tooltip: '초대 코드로 입장',
-            icon: const Icon(Icons.vpn_key_outlined),
-            onPressed: () => _joinRoom(context, ref),
-          ),
           IconButton(
             tooltip: '로그아웃',
             icon: const Icon(Icons.logout),
@@ -77,46 +64,81 @@ class RoomListScreen extends ConsumerWidget {
           ),
         ],
       ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => _createRoom(context, ref),
-        icon: const Icon(Icons.add),
-        label: const Text('여행방 만들기'),
-      ),
-      body: rooms.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (_, _) => Center(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
+      body: TravelWidth(
+        child: RefreshIndicator(
+          onRefresh: () => ref.refresh(myRoomsProvider.future),
+          child: ListView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            padding: const EdgeInsets.fromLTRB(22, 22, 22, 32),
             children: [
-              const Text('여행방 목록을 불러오지 못했습니다.'),
-              TextButton(
-                onPressed: () => ref.invalidate(myRoomsProvider),
-                child: const Text('다시 시도'),
+              const TravelHeading(
+                '함께 만드는 여행',
+                description: '새 여행을 시작하거나 받은 초대 코드로 함께하세요.',
+              ),
+              const SizedBox(height: 24),
+              FilledButton.icon(
+                onPressed: () => _createRoom(context),
+                icon: const Icon(Icons.add),
+                label: const Text('여행방 만들기'),
+              ),
+              const SizedBox(height: 8),
+              OutlinedButton.icon(
+                onPressed: () => _joinRoom(context, ref),
+                icon: const Icon(Icons.vpn_key_outlined, size: 18),
+                label: const Text('초대 코드로 입장'),
+              ),
+              const SizedBox(height: 28),
+              Text('내 여행방', style: Theme.of(context).textTheme.titleLarge),
+              const SizedBox(height: 12),
+              rooms.when(
+                loading: () => const LinearProgressIndicator(),
+                error: (_, _) => Card(
+                  child: ListTile(
+                    title: const Text('여행방 목록을 불러오지 못했습니다.'),
+                    trailing: TextButton(
+                      onPressed: () => ref.invalidate(myRoomsProvider),
+                      child: const Text('다시 시도'),
+                    ),
+                  ),
+                ),
+                data: (list) => list.isEmpty
+                    ? const Card(
+                        child: ListTile(
+                          leading: Icon(Icons.luggage_outlined),
+                          title: Text('아직 여행방이 없어요.'),
+                        ),
+                      )
+                    : Column(
+                        children: [
+                          for (final room in list)
+                            Padding(
+                              padding: const EdgeInsets.only(bottom: 10),
+                              child: Card(
+                                clipBehavior: Clip.antiAlias,
+                                child: ListTile(
+                                  leading: const CircleAvatar(
+                                    backgroundColor: travelTint,
+                                    foregroundColor: travelBlue,
+                                    child: Icon(Icons.luggage_outlined),
+                                  ),
+                                  title: Text(
+                                    room.name,
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .titleMedium,
+                                  ),
+                                  subtitle: Text('초대 코드 ${room.inviteCode}'),
+                                  trailing: const Icon(Icons.chevron_right),
+                                  onTap: () => _openRoom(context, room.id),
+                                ),
+                              ),
+                            ),
+                        ],
+                      ),
               ),
             ],
           ),
         ),
-        data: (list) => list.isEmpty
-            ? const Center(
-                child: Text('아직 여행방이 없어요.\n여행방을 만들거나 초대 코드로 입장해 보세요.',
-                    textAlign: TextAlign.center),
-              )
-            : RefreshIndicator(
-                onRefresh: () => ref.refresh(myRoomsProvider.future),
-                child: ListView.separated(
-                  itemCount: list.length,
-                  separatorBuilder: (_, _) => const Divider(height: 1),
-                  itemBuilder: (context, index) {
-                    final room = list[index];
-                    return ListTile(
-                      title: Text(room.name),
-                      subtitle: Text('초대 코드 ${room.inviteCode}'),
-                      trailing: const Icon(Icons.chevron_right),
-                      onTap: () => _openRoom(context, room.id),
-                    );
-                  },
-                ),
-              ),
       ),
     );
   }
@@ -129,14 +151,14 @@ Future<String?> _askText(
   required String confirm,
   String? hint,
 }) {
-  final controller = TextEditingController();
+  var value = '';
   return showDialog<String>(
     context: context,
     builder: (context) => AlertDialog(
       title: Text(title),
       content: TextField(
-        controller: controller,
         autofocus: true,
+        onChanged: (input) => value = input.trim(),
         decoration: InputDecoration(labelText: label, hintText: hint),
       ),
       actions: [
@@ -146,14 +168,13 @@ Future<String?> _askText(
         ),
         FilledButton(
           onPressed: () {
-            final value = controller.text.trim();
             Navigator.of(context).pop(value.isEmpty ? null : value);
           },
           child: Text(confirm),
         ),
       ],
     ),
-  ).whenComplete(controller.dispose);
+  );
 }
 
 void _showMessage(BuildContext context, String message) {

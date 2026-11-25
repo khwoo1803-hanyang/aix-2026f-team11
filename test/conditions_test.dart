@@ -138,6 +138,8 @@ void main() {
     await tester.pumpWidget(_screen(service, const []));
     await tester.pumpAndSettle();
 
+    await tester.drag(find.byType(ListView), const Offset(0, -200));
+    await tester.pumpAndSettle();
     await tester.tap(find.text('예산'));
     await tester.pumpAndSettle();
     expect(find.text('비우기'), findsNothing);

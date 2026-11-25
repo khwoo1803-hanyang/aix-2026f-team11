@@ -66,9 +66,8 @@ class _ChatSheetState extends ConsumerState<ChatSheet> {
       _input.clear();
     } catch (_) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('메시지를 보내지 못했습니다.')),
-        );
+        ScaffoldMessenger.of(context)
+            .showSnackBar(const SnackBar(content: Text('메시지를 보내지 못했습니다.')));
       }
     } finally {
       if (mounted) setState(() => _sending = false);
@@ -93,7 +92,26 @@ class _ChatSheetState extends ConsumerState<ChatSheet> {
 
     return Column(
       children: [
-        Text('여행방 채팅', style: Theme.of(context).textTheme.titleMedium),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: Row(
+            children: [
+              const Icon(Icons.chat_bubble_outline),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  '여행방 채팅',
+                  style: Theme.of(context).textTheme.titleMedium,
+                ),
+              ),
+              IconButton(
+                tooltip: '채팅 닫기',
+                onPressed: () => Navigator.of(context).maybePop(),
+                icon: const Icon(Icons.close),
+              ),
+            ],
+          ),
+        ),
         const Divider(),
         Expanded(
           child: messages.when(
@@ -144,12 +162,11 @@ class _ChatSheetState extends ConsumerState<ChatSheet> {
                     decoration: const InputDecoration(
                       hintText: '메시지 입력',
                       counterText: '',
-                      border: OutlineInputBorder(),
                       isDense: true,
                     ),
                   ),
                 ),
-                IconButton(
+                IconButton.filled(
                   tooltip: '보내기',
                   onPressed: _sending ? null : _send,
                   icon: const Icon(Icons.send),
@@ -184,8 +201,9 @@ class _MessageBubble extends StatelessWidget {
       child: Padding(
         padding: const EdgeInsets.symmetric(vertical: 4),
         child: Column(
-          crossAxisAlignment:
-              isMine ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+          crossAxisAlignment: isMine
+              ? CrossAxisAlignment.end
+              : CrossAxisAlignment.start,
           children: [
             if (!isMine)
               Text(nickname, style: Theme.of(context).textTheme.labelSmall),
@@ -194,14 +212,21 @@ class _MessageBubble extends StatelessWidget {
               child: DecoratedBox(
                 decoration: BoxDecoration(
                   color: isMine
-                      ? colors.primaryContainer
+                      ? colors.primary
                       : colors.surfaceContainerHighest,
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Padding(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                  child: Text(message.content),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 8,
+                  ),
+                  child: Text(
+                    message.content,
+                    style: TextStyle(
+                      color: isMine ? colors.onPrimary : colors.onSurface,
+                    ),
+                  ),
                 ),
               ),
             ),
