@@ -1,0 +1,67 @@
+# main에 머지될 때마다 웹 데모를 GitHub Pages에 올린다.
+# 주소: https://khwoo1803-hanyang.github.io/aix-2026f-team11/
+# Supabase URL과 publishable 키는 저장소 Secrets(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY)에서 읽는다.
+# publishable 키는 앱에 넣는 공개용 키라 웹 페이지 안에 들어간다. secret 키와 AI 키는 넣지 않는다.
+name: Deploy web demo
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: 3.47.9
+          channel: stable
+          cache: true
+
+      - name: Create env.json
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_PUBLISHABLE_KEY: ${{ secrets.SUPABASE_PUBLISHABLE_KEY }}
+        run: |
+          if [ -z "$SUPABASE_URL" ] || [ -z "$SUPABASE_PUBLISHABLE_KEY" ]; then
+            echo "저장소 Secrets에 SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY를 등록해 주세요." >&2
+            exit 1
+          fi
+          jq -n --arg url "$SUPABASE_URL" --arg key "$SUPABASE_PUBLISHABLE_KEY" \
+            '{SUPABASE_URL: $url, SUPABASE_PUBLISHABLE_KEY: $key}' > env.json
+
+      - run: flutter pub get
+      - run: flutter test
+
+      - name: Build web
+        run: >
+          flutter build web --release
+          --base-href /${{ github.event.repository.name }}/
+          --dart-define-from-file=env.json
+
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: build/web
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
