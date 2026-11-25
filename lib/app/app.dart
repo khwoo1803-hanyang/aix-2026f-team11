@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/auth_provider.dart';
 import 'screens/auth/login_screen.dart';
 import 'screens/home/room_list_screen.dart';
+import 'travel_theme.dart';
 
 class TravelPlannerApp extends StatelessWidget {
   const TravelPlannerApp({super.key, required this.isSupabaseConfigured});
@@ -14,10 +15,10 @@ class TravelPlannerApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: '여행 계획',
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.teal),
-      ),
-      home: isSupabaseConfigured ? const AuthGate() : const SetupRequiredScreen(),
+      theme: travelTheme(),
+      home: isSupabaseConfigured
+          ? const AuthGate()
+          : const SetupRequiredScreen(),
     );
   }
 }

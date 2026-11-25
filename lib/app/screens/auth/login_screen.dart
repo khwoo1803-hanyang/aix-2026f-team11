@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../providers/auth_provider.dart';
 import '../../../services/auth_service.dart';
+import '../../travel_theme.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
@@ -64,24 +65,43 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: Text(_isSignUp ? '회원가입' : '로그인')),
-      body: Center(
+      body: SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24),
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 400),
+          padding: const EdgeInsets.fromLTRB(22, 36, 22, 32),
+          child: TravelWidth(
+            maxWidth: 408,
             child: Form(
               key: _formKey,
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
+                  const Align(
+                    alignment: Alignment.centerLeft,
+                    child: CircleAvatar(
+                      radius: 26,
+                      backgroundColor: travelTint,
+                      foregroundColor: travelBlue,
+                      child: Icon(Icons.flight_takeoff_rounded, size: 26),
+                    ),
+                  ),
+                  const SizedBox(height: 18),
+                  TravelHeading(
+                    _isSignUp ? '함께 떠날 준비를 해요' : '함께 만드는 여행',
+                    description: _isSignUp
+                        ? '친구들에게 보여 줄 닉네임을 알려 주세요.'
+                        : '여행방을 만들고 친구를 초대해 보세요.',
+                  ),
+                  const SizedBox(height: 24),
                   if (_isSignUp) ...[
                     TextFormField(
                       key: const Key('nickname'),
                       controller: _nickname,
-                      decoration: const InputDecoration(labelText: '닉네임'),
-                      validator: (value) => (value ?? '').trim().isEmpty
-                          ? '닉네임을 입력해 주세요.'
-                          : null,
+                      decoration: const InputDecoration(
+                        labelText: '닉네임',
+                        prefixIcon: Icon(Icons.person_outline),
+                      ),
+                      validator: (value) =>
+                          (value ?? '').trim().isEmpty ? '닉네임을 입력해 주세요.' : null,
                     ),
                     const SizedBox(height: 12),
                   ],
@@ -89,20 +109,30 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     key: const Key('email'),
                     controller: _email,
                     keyboardType: TextInputType.emailAddress,
-                    decoration: const InputDecoration(labelText: '이메일'),
-                    validator: (value) => (value ?? '').contains('@')
-                        ? null
-                        : '이메일을 입력해 주세요.',
+                    autofillHints: const [AutofillHints.email],
+                    decoration: const InputDecoration(
+                      labelText: '이메일',
+                      prefixIcon: Icon(Icons.mail_outline),
+                    ),
+                    validator: (value) =>
+                        (value ?? '').contains('@') ? null : '이메일을 입력해 주세요.',
                   ),
                   const SizedBox(height: 12),
                   TextFormField(
                     key: const Key('password'),
                     controller: _password,
                     obscureText: true,
-                    decoration: const InputDecoration(labelText: '비밀번호'),
-                    validator: (value) => (value ?? '').length < 6
-                        ? '비밀번호는 6자 이상이어야 합니다.'
-                        : null,
+                    autofillHints: [
+                      _isSignUp
+                          ? AutofillHints.newPassword
+                          : AutofillHints.password,
+                    ],
+                    decoration: const InputDecoration(
+                      labelText: '비밀번호',
+                      prefixIcon: Icon(Icons.lock_outline),
+                    ),
+                    validator: (value) =>
+                        (value ?? '').length < 6 ? '비밀번호는 6자 이상이어야 합니다.' : null,
                   ),
                   const SizedBox(height: 16),
                   if (_error != null)
@@ -127,12 +157,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     onPressed: _busy
                         ? null
                         : () => setState(() {
-                              _isSignUp = !_isSignUp;
-                              _error = null;
-                            }),
-                    child: Text(
-                      _isSignUp ? '이미 계정이 있어요' : '처음이에요, 회원가입',
-                    ),
+                            _isSignUp = !_isSignUp;
+                            _error = null;
+                          }),
+                    child: Text(_isSignUp ? '이미 계정이 있어요' : '처음이에요, 회원가입'),
                   ),
                 ],
               ),

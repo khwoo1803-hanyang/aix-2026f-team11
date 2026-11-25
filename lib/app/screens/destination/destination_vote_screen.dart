@@ -6,6 +6,7 @@ import '../../../providers/chat_provider.dart';
 import '../../../providers/destination_provider.dart';
 import '../../../providers/room_provider.dart';
 import '../../../services/destination_service.dart';
+import '../../travel_theme.dart';
 import '../chat/chat_sheet.dart';
 
 class DestinationVoteScreen extends ConsumerWidget {
@@ -13,7 +14,10 @@ class DestinationVoteScreen extends ConsumerWidget {
 
   final String roomId;
 
-  Future<void> _run(BuildContext context, Future<void> Function() action) async {
+  Future<void> _run(
+    BuildContext context,
+    Future<void> Function() action,
+  ) async {
     try {
       await action();
     } on DestinationException catch (error) {
@@ -31,7 +35,9 @@ class DestinationVoteScreen extends ConsumerWidget {
     if (input == null || !context.mounted) return;
     await _run(
       context,
-      () => ref.read(destinationServiceProvider).addDestination(
+      () => ref
+          .read(destinationServiceProvider)
+          .addDestination(
             roomId: roomId,
             name: input.name,
             reason: input.reason,
@@ -82,7 +88,7 @@ class DestinationVoteScreen extends ConsumerWidget {
     final confirmedId = room?.confirmedDestinationId;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('여행지 투표')),
+      appBar: AppBar(title: const Text('여행지 정하기')),
       floatingActionButton: ChatButton(roomId: roomId),
       body: destinations.when(
         loading: () => const Center(child: CircularProgressIndicator()),
@@ -90,51 +96,71 @@ class DestinationVoteScreen extends ConsumerWidget {
         data: (list) {
           final mine = list.where((d) => d.proposedBy == myId).length;
           final confirmed = list.where((d) => d.id == confirmedId).firstOrNull;
-          return ListView(
-            padding: const EdgeInsets.fromLTRB(16, 16, 16, 88),
-            children: [
-              if (confirmed != null)
-                Card(
-                  color: Theme.of(context).colorScheme.primaryContainer,
-                  child: ListTile(
-                    leading: const Icon(Icons.flag),
-                    title: Text('확정된 여행지: ${confirmed.name}'),
+          return TravelWidth(
+            child: ListView(
+              padding: const EdgeInsets.fromLTRB(22, 12, 22, 88),
+              children: [
+                TravelSteps(
+                  steps: const ['후보 올리기', '투표', '확정'],
+                  current: confirmed != null
+                      ? 2
+                      : list.isEmpty
+                      ? 0
+                      : 1,
+                ),
+                const SizedBox(height: 20),
+                if (confirmed != null)
+                  Card(
+                    color: Theme.of(context).colorScheme.primaryContainer,
+                    child: ListTile(
+                      leading: const Icon(Icons.flag),
+                      title: Text('확정된 여행지: ${confirmed.name}'),
+                    ),
                   ),
+                TravelHeading(
+                  list.isEmpty ? '가고 싶은 곳을 올려요' : '어디가 끌려요?',
+                  description: list.isEmpty
+                      ? '여행지 후보는 멤버마다 두 곳까지 올릴 수 있어요.'
+                      : '후보마다 찬성·보통·반대를 골라 주세요. 찬성이 과반이면 방장이 확정할 수 있어요.',
                 ),
-              Text(
-                '후보마다 찬성·보통·반대를 골라 주세요. 찬성이 ${members.length}명 중 과반이면 방장이 확정할 수 있어요.',
-              ),
-              const SizedBox(height: 12),
-              FilledButton.icon(
-                onPressed: mine >= maxDestinationsPerMember
-                    ? null
-                    : () => _addDestination(context, ref),
-                icon: const Icon(Icons.add_location_alt_outlined),
-                label: Text('후보 올리기 ($mine/$maxDestinationsPerMember)'),
-              ),
-              const SizedBox(height: 12),
-              if (list.isEmpty)
-                const Padding(
-                  padding: EdgeInsets.all(24),
-                  child: Text('아직 후보가 없어요.', textAlign: TextAlign.center),
+                const SizedBox(height: 12),
+                FilledButton.icon(
+                  onPressed: mine >= maxDestinationsPerMember
+                      ? null
+                      : () => _addDestination(context, ref),
+                  icon: const Icon(Icons.add_location_alt_outlined),
+                  label: Text('후보 올리기 ($mine/$maxDestinationsPerMember)'),
                 ),
-              for (final destination in list)
-                _DestinationCard(
-                  destination: destination,
-                  proposer: nicknames[destination.proposedBy] ?? '알 수 없음',
-                  tally: tallies[destination.id] ?? const VoteTally(),
-                  memberCount: members.length,
-                  isOwner: isOwner,
-                  isConfirmed: destination.id == confirmedId,
-                  onVote: (choice) => _run(
-                    context,
-                    () => ref
-                        .read(destinationServiceProvider)
-                        .vote(destinationId: destination.id, choice: choice),
+                const SizedBox(height: 12),
+                if (list.isEmpty)
+                  const Padding(
+                    padding: EdgeInsets.all(24),
+                    child: Text('아직 후보가 없어요.', textAlign: TextAlign.center),
                   ),
-                  onConfirm: () => _confirm(context, ref, destination),
-                ),
-            ],
+                for (final destination in list)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 10),
+                    child: _DestinationCard(
+                      destination: destination,
+                      proposer: nicknames[destination.proposedBy] ?? '알 수 없음',
+                      tally: tallies[destination.id] ?? const VoteTally(),
+                      memberCount: members.length,
+                      isOwner: isOwner,
+                      isConfirmed: destination.id == confirmedId,
+                      onVote: (choice) => _run(
+                        context,
+                        () => ref
+                            .read(destinationServiceProvider)
+                            .vote(
+                              destinationId: destination.id,
+                              choice: choice,
+                            ),
+                      ),
+                      onConfirm: () => _confirm(context, ref, destination),
+                    ),
+                  ),
+              ],
+            ),
           );
         },
       ),
@@ -168,7 +194,7 @@ class _DestinationCard extends StatelessWidget {
     final reason = destination.reason;
     return Card(
       child: Padding(
-        padding: const EdgeInsets.all(12),
+        padding: const EdgeInsets.all(14),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -190,17 +216,34 @@ class _DestinationCard extends StatelessWidget {
               key: Key('tally-${destination.id}'),
             ),
             const SizedBox(height: 8),
-            SegmentedButton<VoteChoice>(
-              segments: [
-                for (final choice in VoteChoice.values)
-                  ButtonSegment(value: choice, label: Text(choice.label)),
+            Row(
+              children: [
+                for (final (index, choice) in VoteChoice.values.indexed) ...[
+                  if (index > 0) const SizedBox(width: 6),
+                  Expanded(
+                    child: Semantics(
+                      selected: tally.mine == choice,
+                      child: OutlinedButton(
+                        style: OutlinedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(horizontal: 4),
+                          backgroundColor: tally.mine != choice
+                              ? Colors.white
+                              : switch (choice) {
+                                  VoteChoice.agree => travelBlue,
+                                  VoteChoice.neutral => travelMuted,
+                                  VoteChoice.disagree => travelOrange,
+                                },
+                          foregroundColor: tally.mine == choice
+                              ? Colors.white
+                              : travelInk,
+                        ),
+                        onPressed: () => onVote(choice),
+                        child: Text(choice.label),
+                      ),
+                    ),
+                  ),
+                ],
               ],
-              selected: {?tally.mine},
-              emptySelectionAllowed: true,
-              showSelectedIcon: false,
-              onSelectionChanged: (selection) {
-                if (selection.isNotEmpty) onVote(selection.first);
-              },
             ),
             if (isOwner && !isConfirmed) ...[
               const SizedBox(height: 8),
@@ -249,7 +292,10 @@ class _AddDestinationDialogState extends State<_AddDestinationDialog> {
             controller: _name,
             autofocus: true,
             maxLength: 40,
-            decoration: const InputDecoration(labelText: '여행지', hintText: '예: 강릉'),
+            decoration: const InputDecoration(
+              labelText: '여행지',
+              hintText: '예: 강릉',
+            ),
           ),
           TextField(
             key: const Key('destination-reason'),
@@ -271,7 +317,8 @@ class _AddDestinationDialogState extends State<_AddDestinationDialog> {
           onPressed: () {
             final name = _name.text.trim();
             if (name.isEmpty) return;
-            Navigator.of(context).pop((name: name, reason: _reason.text.trim()));
+            Navigator.of(context)
+                .pop((name: name, reason: _reason.text.trim()));
           },
           child: const Text('올리기'),
         ),
