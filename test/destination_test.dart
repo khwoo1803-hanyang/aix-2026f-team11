@@ -23,8 +23,7 @@ class _FakeDestinationService implements DestinationService {
   }
 
   @override
-  Future<void> confirm(String destinationId) async =>
-      confirmed.add(destinationId);
+  Future<void> confirm(String destinationId) async => confirmed.add(destinationId);
 
   @override
   Future<void> addDestination({
@@ -34,12 +33,10 @@ class _FakeDestinationService implements DestinationService {
   }) async {}
 
   @override
-  Stream<List<Destination>> watchDestinations(String roomId) =>
-      const Stream.empty();
+  Stream<List<Destination>> watchDestinations(String roomId) => const Stream.empty();
 
   @override
-  Stream<List<DestinationVote>> watchVotes(String roomId) =>
-      const Stream.empty();
+  Stream<List<DestinationVote>> watchVotes(String roomId) => const Stream.empty();
 }
 
 DestinationVote _vote(String dest, String user, VoteChoice choice) =>
@@ -58,16 +55,14 @@ Widget _screen({
       destinationServiceProvider.overrideWithValue(service),
       currentUserIdProvider.overrideWithValue(myId),
       roomProvider('r').overrideWith(
-        (ref) => Stream.value(
-          TravelRoom(
-            id: 'r',
-            name: '여름 여행',
-            inviteCode: 'ABCDEF',
-            ownerId: 'owner',
-            createdAt: _created,
-            confirmedDestinationId: confirmedId,
-          ),
-        ),
+        (ref) => Stream.value(TravelRoom(
+          id: 'r',
+          name: '여름 여행',
+          inviteCode: 'ABCDEF',
+          ownerId: 'owner',
+          createdAt: _created,
+          confirmedDestinationId: confirmedId,
+        )),
       ),
       roomMembersProvider('r').overrideWith(
         (ref) async => const [
@@ -102,9 +97,9 @@ Widget _screen({
 }
 
 TextButton _confirmButton(WidgetTester tester, int index) {
-  return tester
-      .widgetList<TextButton>(find.widgetWithText(TextButton, '이 여행지로 확정'))
-      .elementAt(index);
+  return tester.widgetList<TextButton>(
+    find.widgetWithText(TextButton, '이 여행지로 확정'),
+  ).elementAt(index);
 }
 
 void main() {
@@ -134,13 +129,11 @@ void main() {
 
   testWidgets('집계를 보여주고 누른 선택으로 투표한다', (tester) async {
     final service = _FakeDestinationService();
-    await tester.pumpWidget(
-      _screen(
-        myId: 'm1',
-        service: service,
-        votes: [_vote('d1', 'owner', VoteChoice.agree)],
-      ),
-    );
+    await tester.pumpWidget(_screen(
+      myId: 'm1',
+      service: service,
+      votes: [_vote('d1', 'owner', VoteChoice.agree)],
+    ));
     await tester.pumpAndSettle();
 
     expect(find.text('찬성 1 · 보통 0 · 반대 0'), findsOneWidget);
@@ -156,17 +149,15 @@ void main() {
 
   testWidgets('방장은 찬성이 과반인 후보만 확정할 수 있다', (tester) async {
     final service = _FakeDestinationService();
-    await tester.pumpWidget(
-      _screen(
-        myId: 'owner',
-        service: service,
-        votes: [
-          _vote('d1', 'owner', VoteChoice.agree),
-          _vote('d1', 'm1', VoteChoice.agree),
-          _vote('d2', 'owner', VoteChoice.agree),
-        ],
-      ),
-    );
+    await tester.pumpWidget(_screen(
+      myId: 'owner',
+      service: service,
+      votes: [
+        _vote('d1', 'owner', VoteChoice.agree),
+        _vote('d1', 'm1', VoteChoice.agree),
+        _vote('d2', 'owner', VoteChoice.agree),
+      ],
+    ));
     await tester.pumpAndSettle();
 
     expect(_confirmButton(tester, 0).onPressed, isNotNull);
@@ -181,14 +172,12 @@ void main() {
   });
 
   testWidgets('확정된 여행지를 위에 표시한다', (tester) async {
-    await tester.pumpWidget(
-      _screen(
-        myId: 'm2',
-        service: _FakeDestinationService(),
-        votes: const [],
-        confirmedId: 'd2',
-      ),
-    );
+    await tester.pumpWidget(_screen(
+      myId: 'm2',
+      service: _FakeDestinationService(),
+      votes: const [],
+      confirmedId: 'd2',
+    ));
     await tester.pumpAndSettle();
 
     expect(find.text('확정된 여행지: 경주'), findsOneWidget);

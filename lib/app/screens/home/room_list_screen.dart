@@ -10,9 +10,9 @@ class RoomListScreen extends ConsumerWidget {
   const RoomListScreen({super.key});
 
   void _openRoom(BuildContext context, String roomId) {
-    Navigator.of(
-      context,
-    ).push(MaterialPageRoute<void>(builder: (_) => RoomScreen(roomId: roomId)));
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(builder: (_) => RoomScreen(roomId: roomId)),
+    );
   }
 
   Future<void> _createRoom(BuildContext context, WidgetRef ref) async {
@@ -98,10 +98,8 @@ class RoomListScreen extends ConsumerWidget {
         ),
         data: (list) => list.isEmpty
             ? const Center(
-                child: Text(
-                  '아직 여행방이 없어요.\n여행방을 만들거나 초대 코드로 입장해 보세요.',
-                  textAlign: TextAlign.center,
-                ),
+                child: Text('아직 여행방이 없어요.\n여행방을 만들거나 초대 코드로 입장해 보세요.',
+                    textAlign: TextAlign.center),
               )
             : RefreshIndicator(
                 onRefresh: () => ref.refresh(myRoomsProvider.future),

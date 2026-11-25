@@ -76,8 +76,7 @@ class VoteTally {
   final VoteChoice? mine;
 
   /// 찬성이 전체 멤버의 절반을 넘으면 방장이 확정할 수 있다.
-  bool hasMajority(int memberCount) =>
-      memberCount > 0 && agree * 2 > memberCount;
+  bool hasMajority(int memberCount) => memberCount > 0 && agree * 2 > memberCount;
 }
 
 /// 투표 목록을 후보별 찬성·보통·반대 수와 내 선택으로 묶는다.

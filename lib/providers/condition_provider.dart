@@ -10,5 +10,5 @@ final conditionServiceProvider = Provider<ConditionService>((ref) {
 
 final roomConditionsProvider =
     StreamProvider.family<List<TripCondition>, String>((ref, roomId) {
-      return ref.watch(conditionServiceProvider).watchConditions(roomId);
-    });
+  return ref.watch(conditionServiceProvider).watchConditions(roomId);
+});

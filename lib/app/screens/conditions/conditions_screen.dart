@@ -23,8 +23,7 @@ class _ConditionsScreenState extends ConsumerState<ConditionsScreen> {
   bool _extracting = false;
 
   void _showMessage(String message) {
-    ScaffoldMessenger.of(context)
-        .showSnackBar(SnackBar(content: Text(message)));
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
   }
 
   Future<void> _extract() async {
@@ -34,13 +33,11 @@ class _ConditionsScreenState extends ConsumerState<ConditionsScreen> {
       final result = await ref
           .read(conditionServiceProvider)
           .extractFromChat(widget.roomId);
-      final keptNote = result.kept > 0
-          ? ' 직접 고친 ${result.kept}개는 그대로 뒀어요.'
-          : '';
+      final keptNote = result.kept > 0 ? ' 직접 고친 ${result.kept}개는 그대로 뒀어요.' : '';
       message = result.found == 0
           ? result.kept > 0
-                ? '새로 바뀐 조건이 없어요.$keptNote'
-                : '대화에서 조건을 찾지 못했어요. 채팅에 날짜, 예산 같은 조건을 적거나 직접 입력해 보세요.'
+              ? '새로 바뀐 조건이 없어요.$keptNote'
+              : '대화에서 조건을 찾지 못했어요. 채팅에 날짜, 예산 같은 조건을 적거나 직접 입력해 보세요.'
           : '조건 ${result.found}개를 정리했어요.$keptNote';
     } on ConditionException catch (error) {
       message = error.message;
@@ -55,8 +52,7 @@ class _ConditionsScreenState extends ConsumerState<ConditionsScreen> {
   Future<void> _edit(ConditionField field, TripCondition? current) async {
     final action = await showDialog<_EditAction>(
       context: context,
-      builder: (_) =>
-          _EditConditionDialog(field: field, initial: current?.value),
+      builder: (_) => _EditConditionDialog(field: field, initial: current?.value),
     );
     if (action == null || !mounted) return;
     final service = ref.read(conditionServiceProvider);
@@ -77,15 +73,12 @@ class _ConditionsScreenState extends ConsumerState<ConditionsScreen> {
   @override
   Widget build(BuildContext context) {
     final conditions = ref.watch(roomConditionsProvider(widget.roomId));
-    final messages =
-        ref.watch(roomMessagesProvider(widget.roomId)).value ?? const [];
-    final members =
-        ref.watch(roomMembersProvider(widget.roomId)).value ?? const [];
+    final messages = ref.watch(roomMessagesProvider(widget.roomId)).value ?? const [];
+    final members = ref.watch(roomMembersProvider(widget.roomId)).value ?? const [];
 
     final nicknames = {for (final m in members) m.userId: m.nickname};
     final sources = {
-      for (final m in messages)
-        m.id: '${nicknames[m.userId] ?? '알 수 없음'}: ${m.content}',
+      for (final m in messages) m.id: '${nicknames[m.userId] ?? '알 수 없음'}: ${m.content}',
     };
 
     return Scaffold(

@@ -66,8 +66,9 @@ class _ChatSheetState extends ConsumerState<ChatSheet> {
       _input.clear();
     } catch (_) {
       if (mounted) {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(const SnackBar(content: Text('메시지를 보내지 못했습니다.')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('메시지를 보내지 못했습니다.')),
+        );
       }
     } finally {
       if (mounted) setState(() => _sending = false);
@@ -183,9 +184,8 @@ class _MessageBubble extends StatelessWidget {
       child: Padding(
         padding: const EdgeInsets.symmetric(vertical: 4),
         child: Column(
-          crossAxisAlignment: isMine
-              ? CrossAxisAlignment.end
-              : CrossAxisAlignment.start,
+          crossAxisAlignment:
+              isMine ? CrossAxisAlignment.end : CrossAxisAlignment.start,
           children: [
             if (!isMine)
               Text(nickname, style: Theme.of(context).textTheme.labelSmall),
@@ -199,10 +199,8 @@ class _MessageBubble extends StatelessWidget {
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 8,
-                  ),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                   child: Text(message.content),
                 ),
               ),

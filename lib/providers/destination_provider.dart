@@ -10,12 +10,10 @@ final destinationServiceProvider = Provider<DestinationService>((ref) {
 
 final roomDestinationsProvider =
     StreamProvider.family<List<Destination>, String>((ref, roomId) {
-      return ref.watch(destinationServiceProvider).watchDestinations(roomId);
-    });
+  return ref.watch(destinationServiceProvider).watchDestinations(roomId);
+});
 
-final roomVotesProvider = StreamProvider.family<List<DestinationVote>, String>((
-  ref,
-  roomId,
-) {
+final roomVotesProvider =
+    StreamProvider.family<List<DestinationVote>, String>((ref, roomId) {
   return ref.watch(destinationServiceProvider).watchVotes(roomId);
 });

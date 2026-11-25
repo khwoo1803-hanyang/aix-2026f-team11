@@ -9,10 +9,8 @@ final chatServiceProvider = Provider<ChatService>((ref) {
   return ChatService(supabase);
 });
 
-final roomMessagesProvider = StreamProvider.family<List<ChatMessage>, String>((
-  ref,
-  roomId,
-) {
+final roomMessagesProvider =
+    StreamProvider.family<List<ChatMessage>, String>((ref, roomId) {
   return ref.watch(chatServiceProvider).watchMessages(roomId);
 });
 

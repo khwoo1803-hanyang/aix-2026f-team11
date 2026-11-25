@@ -101,9 +101,7 @@ class RoomScreen extends ConsumerWidget {
               child: ListTile(
                 leading: const Icon(Icons.how_to_vote_outlined),
                 title: const Text('여행지 투표'),
-                subtitle: Text(
-                  _voteSummary(ref, room.value?.confirmedDestinationId),
-                ),
+                subtitle: Text(_voteSummary(ref, room.value?.confirmedDestinationId)),
                 trailing: const Icon(Icons.chevron_right),
                 onTap: () => Navigator.of(context).push(
                   MaterialPageRoute<void>(

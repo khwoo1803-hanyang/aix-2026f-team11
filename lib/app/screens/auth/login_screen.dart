@@ -79,8 +79,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       key: const Key('nickname'),
                       controller: _nickname,
                       decoration: const InputDecoration(labelText: '닉네임'),
-                      validator: (value) =>
-                          (value ?? '').trim().isEmpty ? '닉네임을 입력해 주세요.' : null,
+                      validator: (value) => (value ?? '').trim().isEmpty
+                          ? '닉네임을 입력해 주세요.'
+                          : null,
                     ),
                     const SizedBox(height: 12),
                   ],
@@ -89,8 +90,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     controller: _email,
                     keyboardType: TextInputType.emailAddress,
                     decoration: const InputDecoration(labelText: '이메일'),
-                    validator: (value) =>
-                        (value ?? '').contains('@') ? null : '이메일을 입력해 주세요.',
+                    validator: (value) => (value ?? '').contains('@')
+                        ? null
+                        : '이메일을 입력해 주세요.',
                   ),
                   const SizedBox(height: 12),
                   TextFormField(
@@ -98,8 +100,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     controller: _password,
                     obscureText: true,
                     decoration: const InputDecoration(labelText: '비밀번호'),
-                    validator: (value) =>
-                        (value ?? '').length < 6 ? '비밀번호는 6자 이상이어야 합니다.' : null,
+                    validator: (value) => (value ?? '').length < 6
+                        ? '비밀번호는 6자 이상이어야 합니다.'
+                        : null,
                   ),
                   const SizedBox(height: 16),
                   if (_error != null)
@@ -124,10 +127,12 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     onPressed: _busy
                         ? null
                         : () => setState(() {
-                            _isSignUp = !_isSignUp;
-                            _error = null;
-                          }),
-                    child: Text(_isSignUp ? '이미 계정이 있어요' : '처음이에요, 회원가입'),
+                              _isSignUp = !_isSignUp;
+                              _error = null;
+                            }),
+                    child: Text(
+                      _isSignUp ? '이미 계정이 있어요' : '처음이에요, 회원가입',
+                    ),
                   ),
                 ],
               ),
